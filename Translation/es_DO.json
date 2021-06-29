@@ -1,0 +1,8 @@
+{
+    "backup": "Copia de seguridad",
+    "download-backup": "Descargar copia de seguridad",
+    "download-backup-p": "Descarga una copia de seguridad de tu base de datos y otra de tus archivos. Guarda estos ficheros en un lugar seguro. Si en algún momento quieres restaurar los datos de FacturaScripts, necesitarás estos ficheros.",
+    "restore-backup": "Restaurar copia de seguridad",
+    "restore-backup-p": "Si tienes los ficheros con tu base de datos y tus archivos, puedes restaurar los datos de FacturaScripts. Selecciona los dos ficheros y pulsa el botón restaurar.",
+    "restore-backup-warning": "Advertencia: restaurar los datos de FacturaScripts es como volver al pasado. Se eliminará todo lo que no estuviese en la copia de seguridad, es decir, las facturas que hayas realizado después y no estén en la copia, se perderán."
+}

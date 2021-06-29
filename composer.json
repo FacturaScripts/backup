@@ -1,0 +1,13 @@
+{
+    "name": "facturascripts/backups",
+    "description": "Description of project Backups.",
+    "authors": [
+        {
+            "name": "Carlos García Gómez",
+            "email": "carlos@facturascripts.com"
+        }
+    ],
+    "require": {
+        "coderatio/simple-backup": "1.0.*"
+    }
+}
