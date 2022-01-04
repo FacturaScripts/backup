@@ -1,8 +1,8 @@
 {
     "backup": "Còpia de seguretat",
-    "download-backup":  "download-backup": "Descarregar còpia de seguretat",
-    "download-backup-p":  "download-backup-p": "Descarrega una còpia de seguretat de la teva base de dades i una altra dels teus arxius. Guarda aquests fitxers en un lloc segur. Si en algun moment vols restaurar les dades de FacturaScripts, necessitaràs aquests fitxers.",
-    "restore-backup":    "restore-backup": "Restaurar còpia de seguretat",
+    "download-backup": "Descarregar còpia de seguretat",
+    "download-backup-p": "Descarrega una còpia de seguretat de la teva base de dades i una altra dels teus arxius. Guarda aquests fitxers en un lloc segur. Si en algun moment vols restaurar les dades de FacturaScripts, necessitaràs aquests fitxers.",
+    "restore-backup": "Restaurar còpia de seguretat",
     "restore-backup-p": "Si tens els fitxers amb la teva base de dades i els teus fitxers, pots restaurar les dades de FacturaScripts. Selecciona els dos fitxers i prem el botó restaurar.",
     "restore-backup-warning": "Advertiment: restaurar les dades de FacturaScripts és com tornar al passat. S'eliminarà tot el que no estigués a la còpia de seguretat, és a dir, les factures que hagis realitzat després i no estiguin a la còpia , es perdran."
 }
