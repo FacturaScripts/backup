@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2021 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Plugins\Backup\Controller;
 
 use Coderatio\SimpleBackup\SimpleBackup;
@@ -31,7 +32,7 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use ZipArchive;
 
 /**
- * Backup an restors database and user files of application
+ * Backup and restore database and user files of application
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -53,7 +54,7 @@ class Backup extends Controller
      *
      * @return array
      */
-    public function getPageData()
+    public function getPageData(): array
     {
         $data = parent::getPageData();
         $data['menu'] = 'admin';
@@ -65,8 +66,8 @@ class Backup extends Controller
     /**
      * Runs the controller's private logic.
      *
-     * @param Response              $response
-     * @param User                  $user
+     * @param Response $response
+     * @param User $user
      * @param ControllerPermissions $permissions
      */
     public function privateCore(&$response, $user, $permissions)
@@ -88,6 +89,11 @@ class Backup extends Controller
 
     private function downloadDbAction()
     {
+        if (FS_DB_TYPE != 'mysql') {
+            self::toolBox()::log()->error('mysql-support-only');
+            return;
+        }
+
         $this->setTemplate(false);
         SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->downloadAfterExport(FS_DB_NAME);
     }
@@ -124,6 +130,11 @@ class Backup extends Controller
         $this->dataBase->connect();
     }
 
+    /**
+     * @param string $fileName
+     *
+     * @return bool
+     */
     private function zipFolder(string $fileName): bool
     {
         $zip = new ZipArchive();

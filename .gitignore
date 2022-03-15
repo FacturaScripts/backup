@@ -1,7 +1,22 @@
-/nbproject/
 /node_modules/
 /vendor/
 .DS_Store
+.htaccess
 package-lock.json
 *.cache
 *.lock
+
+# eclipse
+.buildpath
+.project
+.settings
+
+# netbeans
+/nbproject/
+
+# phpstorm
+/.idea/
+
+# sscode
+.vscode
+*.code-workspace
