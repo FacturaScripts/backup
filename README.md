@@ -1,5 +1,5 @@
 # Backup
-Plugin de copias de seguridad para FacturaScripts 2021.
+Plugin de copias de seguridad para FacturaScripts 2022.
 - https://facturascripts.com/plugins/backup
 
 ## Carpeta

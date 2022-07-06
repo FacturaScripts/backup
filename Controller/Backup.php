@@ -49,11 +49,6 @@ class Backup extends Controller
         return UploadedFile::getMaxFilesize() / 1024 / 1024;
     }
 
-    /**
-     * Returns basic page attributes
-     *
-     * @return array
-     */
     public function getPageData(): array
     {
         $data = parent::getPageData();
@@ -77,13 +72,16 @@ class Backup extends Controller
         $action = $this->request->get('action', '');
         switch ($action) {
             case 'download-db':
-                return $this->downloadDbAction();
+                $this->downloadDbAction();
+                break;
 
             case 'download-files':
-                return $this->downloadFilesAction();
+                $this->downloadFilesAction();
+                break;
 
             case 'restore-backup':
-                return $this->restoreBackupAction();
+                $this->restoreBackupAction();
+                break;
         }
     }
 
@@ -95,7 +93,8 @@ class Backup extends Controller
         }
 
         $this->setTemplate(false);
-        SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->downloadAfterExport(FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));
+        SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
+            ->downloadAfterExport(FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));
     }
 
     private function downloadFilesAction()
@@ -108,18 +107,21 @@ class Backup extends Controller
 
         $this->setTemplate(false);
         $this->response = new BinaryFileResponse($filePath);
-        $this->response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, FS_DB_NAME . '_' . date('Y-m-d_H-i-s') . '.zip');
+        $this->response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            FS_DB_NAME . '_' . date('Y-m-d_H-i-s') . '.zip'
+        );
     }
 
     private function restoreBackupAction()
     {
-        $dbfile = $this->request->files->get('dbfile');
-        if (empty($dbfile)) {
+        $dbFile = $this->request->files->get('dbfile');
+        if (empty($dbFile)) {
             return;
         }
 
         $this->dataBase->close();
-        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($dbfile->getPathname());
+        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($dbFile->getPathname());
         if (false === $backup->getResponse()->status) {
             $this->toolBox()->i18nLog()->error('record-save-error');
             $this->dataBase->connect();
@@ -130,11 +132,6 @@ class Backup extends Controller
         $this->dataBase->connect();
     }
 
-    /**
-     * @param string $fileName
-     *
-     * @return bool
-     */
     private function zipFolder(string $fileName): bool
     {
         $zip = new ZipArchive();

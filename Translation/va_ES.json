@@ -1,8 +1,8 @@
 {
-    "backup": "backup",
+    "backup": "Còpia de seguretat",
     "download-backup": "download-backup",
     "download-backup-p": "download-backup-p",
-    "restore-backup": "restore-backup",
+    "restore-backup": "Restaurar còpia de seguretat",
     "restore-backup-p": "restore-backup-p",
     "restore-backup-warning": "restore-backup-warning"
 }

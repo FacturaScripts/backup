@@ -1,8 +1,8 @@
 {
-    "backup": "backup",
-    "download-backup": "download-backup",
-    "download-backup-p": "download-backup-p",
-    "restore-backup": "restore-backup",
-    "restore-backup-p": "restore-backup-p",
-    "restore-backup-warning": "restore-backup-warning"
+    "backup": "Cópia de segurança",
+    "download-backup": "Baixar cópia de segurança",
+    "download-backup-p": "Baixa a cópia de segurança da tua base de dados e outra dos teus ficheiros. Guarda estes ficheiros num lugar seguro. Se for preciso restaurar FacturaScripts, necessitarás deles.",
+    "restore-backup": "Restaurar cópia de segurança",
+    "restore-backup-p": "Se tens a cópia da tua base de dados e ficheiros, podes restaurar os dados de FacturaScripts. Seleciona os 2 arquivos da cópia de segurança e preme no botão restaurar",
+    "restore-backup-warning": "Advertência: Restaurar FacturaScripts é como regressar ao passado no tempo. Tudo o que não estiver na cópia de segurança será eliminado, isto é, as faturas que realizares depois da cópia e não estivessem nela serão perdidas"
 }

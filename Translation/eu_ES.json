@@ -1,8 +1,8 @@
 {
-    "backup": "backup",
-    "download-backup": "download-backup",
-    "download-backup-p": "download-backup-p",
-    "restore-backup": "restore-backup",
-    "restore-backup-p": "restore-backup-p",
-    "restore-backup-warning": "restore-backup-warning"
+    "backup": "Segurtasun kopia",
+    "download-backup": "Segurtasun kopia deskargatu",
+    "download-backup-p": "Deskargatu zure datu-basearen eta fitxategiaren segurtasun kopia bat. Gorde fitxategi hauek leku seguru batean. Noizbait FacturaScripts-eko datuak berreskuratu nahi badituzu, fitxategi hau beharko duzu.",
+    "restore-backup": "Segurtasun kopia berreskuratu",
+    "restore-backup-p": "Zure datu basea eta fitxategiak badituzu, FacturaScripts-eko datuak berreskuratu ditzakezu. Aukeratu bi fitxeroak eta sakatu leheneratu botoia.",
+    "restore-backup-warning": "Abisua: FacturaScripts datuak berreskuratzea denboran atzera egitea da. Segurtasun kopian ez zegoen guztia ezabatuko da, hau da, gerora egin dituzun eta kopian ez dauden fakturak galduko dira."
 }
