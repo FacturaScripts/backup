@@ -92,6 +92,11 @@ class Backup extends Controller
             return;
         }
 
+        if (false === extension_loaded('pdo_mysql')) {
+            self::toolBox()::log()->error('pdo-mysql-support-only');
+            return;
+        }
+
         $this->setTemplate(false);
         SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
             ->downloadAfterExport(FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));

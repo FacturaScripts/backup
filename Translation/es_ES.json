@@ -1,4 +1,7 @@
 {
+    "pdo-mysql-support-only": "La extensión pdo_mysql debe estar activada para poder usar esta función.",
+    "mysql-support-only": "El tipo de su base de datos no es MySql",
+
     "backup": "Copia de seguridad",
     "download-backup": "Descargar copia de seguridad",
     "download-backup-p": "Descarga una copia de seguridad de tu base de datos y otra de tus archivos. Guarda estos ficheros en un lugar seguro. Si en algún momento quieres restaurar los datos de FacturaScripts, necesitarás estos ficheros.",
