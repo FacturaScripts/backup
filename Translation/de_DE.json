@@ -2,6 +2,7 @@
     "backup": "Sicherheitskopie",
     "download-backup": "Sicherheitskopie runterladen",
     "download-backup-p": "Laden Sie eine Sicherungskopie Ihrer Datenbank und eine weitere Ihrer Dateien herunter. Bewahren Sie diese Dateien an einem sicheren Ort auf. Wenn Sie FacturaScripts-Daten zu irgendeinem Zeitpunkt wiederherstellen möchten, benötigen Sie diese Dateien.",
+    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
     "restore-backup": "restore-backup",
     "restore-backup-p": "restore-backup-p",
     "restore-backup-warning": "restore-backup-warning"

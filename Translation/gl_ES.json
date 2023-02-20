@@ -2,6 +2,7 @@
     "backup": "Copia de seguridade",
     "download-backup": "Baixar cópia de segurança",
     "download-backup-p": "Descarga unha copia de seguridade da túa base de datos e outra dos teus arquivos. Garda estes ficheiros nun lugar seguro. Se nalgún momento queres restaurar os datos de  FacturaScripts, necesitarás estes ficheiros.",
+    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
     "restore-backup": "Restaurar copia de seguridade",
     "restore-backup-p": "Se tes os ficheiros coa túa base de datos e os teus arquivos, podes restaurar os datos de  FacturaScripts. Selecciona os dous ficheiros e pulsa o botón restaurar.",
     "restore-backup-warning": "Advertencia: restaurar os datos de  FacturaScripts é como volver ao pasado. Eliminarase todo o que non estivese na copia de seguridade, é dicir, as facturas que realizases despois e non estean na copia, perderanse."

@@ -2,6 +2,7 @@
     "backup": "Backup",
     "download-backup": "Download backup",
     "download-backup-p": "Download a backup copy of your database and another of your files. Keep these files in a safe place. If at any time you want to restore FacturaScripts data, you will need these files.",
+    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
     "restore-backup": "Restore backup",
     "restore-backup-p": "If you have the files with your database and your files, you can restore the FacturaScripts data. Select the two files and press the restore button.",
     "restore-backup-warning": "Warning: restoring FacturaScripts data is like going back in time. Everything that was not in the backup will be deleted, that is, the invoices that you have made later and are not in the copy, will be lost."
