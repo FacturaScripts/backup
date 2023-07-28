@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2021-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -82,10 +82,60 @@ class Backup extends Controller
             case 'restore-backup':
                 $this->restoreBackupAction();
                 break;
+
+            default:
+                $this->defaultChecks();
+                break;
         }
     }
 
-    private function downloadDbAction()
+    private function defaultChecks(): void
+    {
+        // obtenemos el límite de memoria
+        $memoryLimit = ini_get('memory_limit');
+        switch (substr($memoryLimit, -1)) {
+            case 'G':
+                $memoryMb = substr($memoryLimit, 0, -1) * 1024;
+                break;
+
+            case 'M':
+                $memoryMb = substr($memoryLimit, 0, -1);
+                break;
+
+            case 'K':
+                $memoryMb = round(substr($memoryLimit, 0, -1) / 1024, 2);
+                break;
+
+            default:
+                $memoryMb = (int)$memoryLimit;
+                break;
+        }
+
+        // calculamos el tamaño de la carpeta FS_FOLDER
+        $folderSize = 0;
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator(FS_FOLDER),
+            RecursiveIteratorIterator::LEAVES_ONLY
+        );
+        foreach ($files as $file) {
+            if ($file->isDir()) {
+                continue;
+            }
+
+            $folderSize += $file->getSize();
+        }
+        $folderMb = round($folderSize / 1024 / 1024, 2);
+
+        // si la carpeta FS_FOLDER ocupa más que el límite de memoria, mostramos un aviso
+        if ($folderMb >= $memoryMb) {
+            $this->toolBox()->i18nLog()->warning('backup-memory-warning', [
+                '%size%' => $folderMb,
+                '%memory%' => $memoryMb
+            ]);
+        }
+    }
+
+    private function downloadDbAction(): void
     {
         if (FS_DB_TYPE != 'mysql') {
             self::toolBox()::log()->error('mysql-support-only');
@@ -102,7 +152,7 @@ class Backup extends Controller
             ->downloadAfterExport(FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));
     }
 
-    private function downloadFilesAction()
+    private function downloadFilesAction(): void
     {
         $filePath = FS_FOLDER . '/' . FS_DB_NAME . '.zip';
         if (false === $this->zipFolder($filePath)) {
@@ -118,8 +168,12 @@ class Backup extends Controller
         );
     }
 
-    private function restoreBackupAction()
+    private function restoreBackupAction(): void
     {
+        if (false === $this->validateFormToken()) {
+            return;
+        }
+
         $dbFile = $this->request->files->get('dbfile');
         if (empty($dbFile)) {
             return;

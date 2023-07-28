@@ -1,8 +1,9 @@
 {
     "backup": "Còpia de seguretat",
+    "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad.",
     "download-backup": "Descarregar còpia de seguretat",
     "download-backup-p": "Descarrega una còpia de seguretat de la base de dades i una altra dels teus arxius. Guarda aquests fitxers en un lloc segur. Si en cualsevol moment voleu recuperar les dades de FacturaScripts, necessitaràs aquests fitxers.",
-    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
+    "mysql-support-only": "Aquest plugin només funciona sobre MySQL",
     "restore-backup": "Restaurar còpia de seguretat",
     "restore-backup-p": "Si tens els fitxers amb la teva base de dades i els teus arxius, pots restaurar les dades de FacturaScripts. Selecciona els dos fitxers i prem el botó restaurar.",
     "restore-backup-warning": "Atenció: restaurar les dades de FacturaScripts és com tornar a l'passat. S'eliminarà tot el que no estigués en la còpia de seguretat, és a dir, les factures que hagis realitzat després i no estiguin en la còpia, es perdran."

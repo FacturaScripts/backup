@@ -1,8 +1,9 @@
 {
     "backup": "Segurtasun kopia",
+    "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad.",
     "download-backup": "Segurtasun kopia deskargatu",
     "download-backup-p": "Deskargatu zure datu-basearen eta fitxategiaren segurtasun kopia bat. Gorde fitxategi hauek leku seguru batean. Noizbait FacturaScripts-eko datuak berreskuratu nahi badituzu, fitxategi hau beharko duzu.",
-    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
+    "mysql-support-only": "Plugin honek MySQL-en funtzionatzen du bakarrik",
     "restore-backup": "Segurtasun kopia berreskuratu",
     "restore-backup-p": "Zure datu basea eta fitxategiak badituzu, FacturaScripts-eko datuak berreskuratu ditzakezu. Aukeratu bi fitxeroak eta sakatu leheneratu botoia.",
     "restore-backup-warning": "Abisua: FacturaScripts datuak berreskuratzea denboran atzera egitea da. Segurtasun kopian ez zegoen guztia ezabatuko da, hau da, gerora egin dituzun eta kopian ez dauden fakturak galduko dira."

@@ -18,50 +18,47 @@
                 <div class="card shadow mb-4">
                     <div class="card-body">
                         <h2 class="h4">
-                            <i class="fas fa-download fa-fw"></i> {{ i18n.trans('download-backup') }}
+                            <i class="fas fa-download fa-fw"></i> {{ trans('download-backup') }}
                         </h2>
-                        <p>
-                            {{ i18n.trans('download-backup-p') }}
-                        </p>
-                        <a href="{{ fsc.url() }}?action=download-db" class="btn btn-primary">
-                            <i class="fas fa-download fa-fw"></i> {{ i18n.trans('database') }}
+                        <p class="card-text">{{ trans('download-backup-p') }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ fsc.url() }}?action=download-db" class="btn btn-primary mr-2">
+                            <i class="fas fa-download fa-fw"></i> {{ trans('database') }}
                         </a>
-                        &nbsp;
                         <a href="{{ fsc.url() }}?action=download-files" class="btn btn-secondary">
-                            <i class="fas fa-download fa-fw"></i> {{ i18n.trans('files') }}
+                            <i class="fas fa-download fa-fw"></i> {{ trans('files') }}
                         </a>
                     </div>
                 </div>
 
                 <form action="{{ fsc.url() }}" method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="restore-backup" />
+                    {{ formToken() }}
+                    <input type="hidden" name="action" value="restore-backup"/>
                     <div class="card shadow mb-4">
                         <div class="card-body text-white bg-warning">
                             <h2 class="h4 mb-0">
-                                <i class="fas fa-upload fa-fw"></i> {{ i18n.trans('restore-backup') }}
+                                <i class="fas fa-upload fa-fw"></i> {{ trans('restore-backup') }}
                             </h2>
                         </div>
                         <div class="card-body">
                             <p>
-                                {{ i18n.trans('restore-backup-p') }}
-                                <span class="text-danger">
-                                    {{ i18n.trans('restore-backup-warning') }}
-                                </span>
+                                {{ trans('restore-backup-p') }}
+                                <span class="text-danger">{{ trans('restore-backup-warning') }}</span>
                             </p>
                             <div class="form-row align-items-end">
                                 <div class="col-sm-9">
                                     <div class="form-group">
-                                        {{ i18n.trans('database') }}
-                                        <input type="file" name="dbfile" accept=".sql" class="form-control-file" required=""/>
+                                        {{ trans('database') }}
+                                        <input type="file" name="dbfile" accept=".sql" class="form-control-file"
+                                               required/>
                                     </div>
                                     <p class="mb-1">
-                                        {{ i18n.trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
+                                        {{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
                                     </p>
                                 </div>
                                 <div class="col-sm text-right">
-                                    <button type="submit" class="btn btn-warning">
-                                        {{ i18n.trans('restore') }}
-                                    </button>
+                                    <button type="submit" class="btn btn-warning">{{ trans('restore') }}</button>
                                 </div>
                             </div>
                         </div>
