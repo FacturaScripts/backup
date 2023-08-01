@@ -106,6 +106,10 @@ class Backup extends Controller
                 $memoryMb = round(substr($memoryLimit, 0, -1) / 1024, 2);
                 break;
 
+            case '-1':
+                // no hay límite de memoria
+                return;
+
             default:
                 $memoryMb = (int)$memoryLimit;
                 break;
