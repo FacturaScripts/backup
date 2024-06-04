@@ -1,6 +1,6 @@
 {
     "backup": "Còpia de seguretat",
-    "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad.",
+    "backup-memory-warning": "Advertència: la còpia de seguretat ocupa %size% MB, però solament tens %memory% MB de memòria disponible. Insuficient per a realitzar la còpia de seguretat.",
     "download-backup": "download-backup",
     "download-backup-p": "download-backup-p",
     "mysql-support-only": "Este plugin solamente funciona sobre MySQL",

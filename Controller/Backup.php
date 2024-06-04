@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2021-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -22,6 +22,7 @@ namespace FacturaScripts\Plugins\Backup\Controller;
 use Coderatio\SimpleBackup\SimpleBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\User;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -38,7 +39,6 @@ use ZipArchive;
  */
 class Backup extends Controller
 {
-
     /**
      * Return the max file size that can be uploaded.
      *
@@ -132,7 +132,7 @@ class Backup extends Controller
 
         // si la carpeta FS_FOLDER ocupa más que el límite de memoria, mostramos un aviso
         if ($folderMb >= $memoryMb) {
-            $this->toolBox()->i18nLog()->warning('backup-memory-warning', [
+            Tools::log()->warning('backup-memory-warning', [
                 '%size%' => $folderMb,
                 '%memory%' => $memoryMb
             ]);
@@ -142,12 +142,19 @@ class Backup extends Controller
     private function downloadDbAction(): void
     {
         if (FS_DB_TYPE != 'mysql') {
-            self::toolBox()::log()->error('mysql-support-only');
+            Tools::log()->error('mysql-support-only');
             return;
         }
 
+        // si el puerto no es el por defecto, mostramos un aviso
+        if (FS_DB_PORT != 3306) {
+            Tools::log()->warning('backup-port-warning', [
+                '%port%' => FS_DB_PORT
+            ]);
+        }
+
         if (false === extension_loaded('pdo_mysql')) {
-            self::toolBox()::log()->error('pdo-mysql-support-only');
+            Tools::log()->error('pdo-mysql-support-only');
             return;
         }
 
@@ -160,7 +167,7 @@ class Backup extends Controller
     {
         $filePath = FS_FOLDER . '/' . FS_DB_NAME . '.zip';
         if (false === $this->zipFolder($filePath)) {
-            $this->toolBox()->i18nLog()->error('record-save-error');
+            Tools::log()->error('record-save-error');
             return;
         }
 
@@ -186,12 +193,12 @@ class Backup extends Controller
         $this->dataBase->close();
         $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($dbFile->getPathname());
         if (false === $backup->getResponse()->status) {
-            $this->toolBox()->i18nLog()->error('record-save-error');
+            Tools::log()->error('record-save-error');
             $this->dataBase->connect();
             return;
         }
 
-        $this->toolBox()->i18nLog()->notice('record-updated-correctly');
+        Tools::log()->notice('record-updated-correctly');
         $this->dataBase->connect();
     }
 

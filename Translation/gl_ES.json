@@ -1,6 +1,6 @@
 {
     "backup": "Copia de seguridade",
-    "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad.",
+    "backup-memory-warning": "Advertencia: a copia de seguridade ocupa %size% MB, pero só ten %memory% MB de memoria dispoñible. Insuficiente para realizar a copia de seguridade.",
     "download-backup": "Baixar cópia de segurança",
     "download-backup-p": "Descarga unha copia de seguridade da túa base de datos e outra dos teus arquivos. Garda estes ficheiros nun lugar seguro. Se nalgún momento queres restaurar os datos de  FacturaScripts, necesitarás estes ficheiros.",
     "mysql-support-only": "Este plugin só funciona sobre MySQL",
