@@ -255,7 +255,9 @@ class Backup extends Controller
                 }
 
                 $src = Tools::folder('zip_backup', 'Plugins', $file);
-                Tools::folderCopy($src, $dest);
+                if (is_dir($src)) {
+                    Tools::folderCopy($src, $dest);
+                }
             }
         }
 
@@ -268,7 +270,9 @@ class Backup extends Controller
                 }
 
                 $src = Tools::folder('zip_backup', 'MyFiles', $file);
-                Tools::folderCopy($src, $dest);
+                if (is_dir($src)) {
+                    Tools::folderCopy($src, $dest);
+                }
             }
         } else {
             // no existe la carpeta MyFiles en el xip, así que copiamos los archivos a la carpeta MyFiles
@@ -279,7 +283,9 @@ class Backup extends Controller
                 }
 
                 $src = Tools::folder('zip_backup', $file);
-                Tools::folderCopy($src, $dest);
+                if (is_dir($src)) {
+                    Tools::folderCopy($src, $dest);
+                }
             }
         }
     }
@@ -315,11 +321,13 @@ class Backup extends Controller
             ->importFrom($dbFile->getPathname());
         if (false === $backup->getResponse()->status) {
             Tools::log()->error('record-save-error');
+            $this->dataBase->connect();
             Cache::clear();
             return;
         }
 
         Tools::log()->notice('record-updated-correctly');
+        $this->dataBase->connect();
         Cache::clear();
         $this->redirect('login');
     }
