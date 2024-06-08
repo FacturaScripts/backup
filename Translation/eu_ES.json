@@ -1,10 +1,16 @@
 {
     "backup": "Segurtasun kopia",
+    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
+    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
     "backup-memory-warning": "Abisua: babes-kopia %size% MB hartzen du, baina %memory% MB soilik baditu memoria eskuragarri. Eremuan kopia ezinezkoa da.",
+    "backup-port-warning": "MySQLren ataria 3306 izan behar da, baina %port% erabiltzen ari zara",
     "download-backup": "Segurtasun kopia deskargatu",
     "download-backup-p": "Deskargatu zure datu-basearen eta fitxategiaren segurtasun kopia bat. Gorde fitxategi hauek leku seguru batean. Noizbait FacturaScripts-eko datuak berreskuratu nahi badituzu, fitxategi hau beharko duzu.",
     "mysql-support-only": "Plugin honek MySQL-en funtzionatzen du bakarrik",
     "restore-backup": "Segurtasun kopia berreskuratu",
     "restore-backup-p": "Zure datu basea eta fitxategiak badituzu, FacturaScripts-eko datuak berreskuratu ditzakezu. Aukeratu bi fitxeroak eta sakatu leheneratu botoia.",
-    "restore-backup-warning": "Abisua: FacturaScripts datuak berreskuratzea denboran atzera egitea da. Segurtasun kopian ez zegoen guztia ezabatuko da, hau da, gerora egin dituzun eta kopian ez dauden fakturak galduko dira."
+    "restore-backup-warning": "Abisua: FacturaScripts datuak berreskuratzea denboran atzera egitea da. Segurtasun kopian ez zegoen guztia ezabatuko da, hau da, gerora egin dituzun eta kopian ez dauden fakturak galduko dira.",
+    "restore-files": "Restaurar archivos",
+    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
+    "switch-db-charset": "Cambiar codificación"
 }

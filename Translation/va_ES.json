@@ -1,10 +1,16 @@
 {
     "backup": "Còpia de seguretat",
+    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
+    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
     "backup-memory-warning": "Advertència: la còpia de seguretat ocupa %size% MB, però solament tens %memory% MB de memòria disponible. Insuficient per a realitzar la còpia de seguretat.",
+    "backup-port-warning": "El port de MySQL ha de ser el 3306, però estàs utilitzant el %port%",
     "download-backup": "download-backup",
     "download-backup-p": "download-backup-p",
     "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
     "restore-backup": "Restaurar còpia de seguretat",
     "restore-backup-p": "restore-backup-p",
-    "restore-backup-warning": "restore-backup-warning"
+    "restore-backup-warning": "restore-backup-warning",
+    "restore-files": "Restaurar archivos",
+    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
+    "switch-db-charset": "Cambiar codificación"
 }

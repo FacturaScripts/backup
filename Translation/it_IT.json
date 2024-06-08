@@ -1,10 +1,16 @@
 {
     "backup": "backup",
+    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
+    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
     "backup-memory-warning": "Avviso memoria: il backup occupa %size% MB, ma hai solo %memory% MB di memoria disponibile. Non sufficiente per eseguire il backup.",
+    "backup-port-warning": "Il porto di MySQL deve essere 3306, ma stai utilizzando il %port%",
     "download-backup": "download-backup",
     "download-backup-p": "download-backup-p",
     "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
     "restore-backup": "restore-backup",
     "restore-backup-p": "restore-backup-p",
-    "restore-backup-warning": "restore-backup-warning"
+    "restore-backup-warning": "restore-backup-warning",
+    "restore-files": "Restaurar archivos",
+    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
+    "switch-db-charset": "Cambiar codificación"
 }

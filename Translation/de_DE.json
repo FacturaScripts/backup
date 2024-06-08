@@ -1,10 +1,16 @@
 {
     "backup": "Sicherheitskopie",
-    "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad.",
+    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
+    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-memory-warning": "Warnung: Das Backup belegt %size% MB, aber Sie haben nur %memory% MB freien Speicherplatz. Nicht genügend Speicherplatz für das Backup vorhanden.",
+    "backup-port-warning": "Der MySQL-Port sollte 3306 sein, aber Sie verwenden den %port%",
     "download-backup": "Sicherheitskopie runterladen",
     "download-backup-p": "Laden Sie eine Sicherungskopie Ihrer Datenbank und eine weitere Ihrer Dateien herunter. Bewahren Sie diese Dateien an einem sicheren Ort auf. Wenn Sie FacturaScripts-Daten zu irgendeinem Zeitpunkt wiederherstellen möchten, benötigen Sie diese Dateien.",
     "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
     "restore-backup": "restore-backup",
     "restore-backup-p": "restore-backup-p",
-    "restore-backup-warning": "restore-backup-warning"
+    "restore-backup-warning": "restore-backup-warning",
+    "restore-files": "Restaurar archivos",
+    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
+    "switch-db-charset": "Cambiar codificación"
 }

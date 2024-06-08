@@ -22,6 +22,7 @@ namespace FacturaScripts\Plugins\Backup\Controller;
 use Coderatio\SimpleBackup\SimpleBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
+use FacturaScripts\Core\Cache;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\User;
 use RecursiveDirectoryIterator;
@@ -83,36 +84,55 @@ class Backup extends Controller
                 $this->restoreBackupAction();
                 break;
 
+            case 'restore-files':
+                $this->restoreFilesAction();
+                break;
+
+            case 'switch-db-charset':
+                $this->switchDbCharsetAction();
+                break;
+
             default:
                 $this->defaultChecks();
                 break;
         }
     }
 
+    private function checkDbBackupCharset(string $filePath): bool
+    {
+        $configCharset = Tools::config('mysql_charset');
+
+        // abrimos el archivo
+        $file = fopen($filePath, 'r');
+        if (false === $file) {
+            return false;
+        }
+
+        // leemos las primeras 1000 líneas, si encontramos el charset, devolvemos true
+        $line = 0;
+        while ($line < 1000) {
+            $line++;
+            $buffer = fgets($file);
+            if (false === $buffer) {
+                break;
+            }
+
+            if (strpos($buffer, ' CHARSET=' . $configCharset . ' ') !== false) {
+                fclose($file);
+                return true;
+            }
+        }
+
+        fclose($file);
+        return false;
+    }
+
     private function defaultChecks(): void
     {
         // obtenemos el límite de memoria
-        $memoryLimit = ini_get('memory_limit');
-        switch (substr($memoryLimit, -1)) {
-            case 'G':
-                $memoryMb = substr($memoryLimit, 0, -1) * 1024;
-                break;
-
-            case 'M':
-                $memoryMb = substr($memoryLimit, 0, -1);
-                break;
-
-            case 'K':
-                $memoryMb = round(substr($memoryLimit, 0, -1) / 1024, 2);
-                break;
-
-            case '-1':
-                // no hay límite de memoria
-                return;
-
-            default:
-                $memoryMb = (int)$memoryLimit;
-                break;
+        $memoryMb = $this->getMemoryLimitMb();
+        if ($memoryMb === -1) {
+            return;
         }
 
         // calculamos el tamaño de la carpeta FS_FOLDER
@@ -146,7 +166,7 @@ class Backup extends Controller
             return;
         }
 
-        // si el puerto no es el por defecto, mostramos un aviso
+        // si el puerto no es el puerto por defecto, mostramos un aviso
         if (FS_DB_PORT != 3306) {
             Tools::log()->warning('backup-port-warning', [
                 '%port%' => FS_DB_PORT
@@ -165,7 +185,8 @@ class Backup extends Controller
 
     private function downloadFilesAction(): void
     {
-        $filePath = FS_FOLDER . '/' . FS_DB_NAME . '.zip';
+        // creamos un archivo temporal
+        $filePath = tempnam(FS_FOLDER, 'zip');
         if (false === $this->zipFolder($filePath)) {
             Tools::log()->error('record-save-error');
             return;
@@ -177,6 +198,70 @@ class Backup extends Controller
             ResponseHeaderBag::DISPOSITION_ATTACHMENT,
             FS_DB_NAME . '_' . date('Y-m-d_H-i-s') . '.zip'
         );
+
+        unlink($filePath);
+    }
+
+    private function getMemoryLimitMb(): int
+    {
+        $memoryLimit = ini_get('memory_limit');
+        if ($memoryLimit === '-1') {
+            return -1;
+        }
+
+        switch (substr($memoryLimit, -1)) {
+            case 'G':
+                return substr($memoryLimit, 0, -1) * 1024;
+
+            case 'M':
+                return substr($memoryLimit, 0, -1);
+
+            case 'K':
+                return round(substr($memoryLimit, 0, -1) / 1024, 2);
+
+            default:
+                return (int)$memoryLimit;
+        }
+    }
+
+    private function moveFiles(): void
+    {
+        // si existe la carpeta Plugins, copiamos los archivos a la carpeta correspondiente
+        if (is_dir(Tools::folder('zip_backup', 'Plugins'))) {
+            foreach (Tools::folderScan(Tools::folder('zip_backup', 'Plugins')) as $file) {
+                $dest = Tools::folder('Plugins', $file);
+                if (file_exists($dest)) {
+                    continue;
+                }
+
+                $src = Tools::folder('zip_backup', 'Plugins', $file);
+                Tools::folderCopy($src, $dest);
+            }
+        }
+
+        // si existe la carpeta MyFiles, copiamos los archivos a la carpeta correspondiente
+        if (is_dir(Tools::folder('zip_backup', 'MyFiles'))) {
+            foreach (Tools::folderScan(Tools::folder('zip_backup', 'MyFiles')) as $file) {
+                $dest = Tools::folder('MyFiles', $file);
+                if (file_exists($dest)) {
+                    continue;
+                }
+
+                $src = Tools::folder('zip_backup', 'MyFiles', $file);
+                Tools::folderCopy($src, $dest);
+            }
+        } else {
+            // no existe la carpeta MyFiles en el xip, así que copiamos los archivos a la carpeta MyFiles
+            foreach (Tools::folderScan(Tools::folder('zip_backup')) as $file) {
+                $dest = Tools::folder('MyFiles', $file);
+                if (file_exists($dest)) {
+                    continue;
+                }
+
+                $src = Tools::folder('zip_backup', $file);
+                Tools::folderCopy($src, $dest);
+            }
+        }
     }
 
     private function restoreBackupAction(): void
@@ -185,10 +270,19 @@ class Backup extends Controller
             return;
         }
 
-        $dbFile = $this->request->files->get('dbfile');
+        $dbFile = $this->request->files->get('db_file');
         if (empty($dbFile)) {
             return;
         }
+
+        // comprobamos si el charset en el backup es el mismo que en el config.php
+        if (false === $this->checkDbBackupCharset($dbFile->getPathname())) {
+            Tools::log()->error('backup-charset-error');
+            return;
+        }
+
+        Tools::log()->error('no-backup-charset-error');
+        return;
 
         $this->dataBase->close();
         $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($dbFile->getPathname());
@@ -200,6 +294,69 @@ class Backup extends Controller
 
         Tools::log()->notice('record-updated-correctly');
         $this->dataBase->connect();
+        Cache::clear();
+        $this->redirect('login');
+    }
+
+    private function restoreFilesAction(): void
+    {
+        if (false === $this->validateFormToken()) {
+            return;
+        }
+
+        $zipFile = $this->request->files->get('zip_file');
+        if (empty($zipFile)) {
+            return;
+        }
+
+        $zip = new ZipArchive();
+        if (false === $zip->open($zipFile->getPathname())) {
+            Tools::log()->error('zip error');
+            return;
+        }
+
+        // si ya existe la carpeta zip_backup, la eliminamos
+        Tools::folderDelete(Tools::folder('zip_backup'));
+
+        // extraemos el contenido dentro de la carpeta zip_backup
+        if (false === $zip->extractTo(Tools::folder('zip_backup'))) {
+            Tools::log()->error('zip extract error');
+            return;
+        }
+        $zip->close();
+
+        $this->moveFiles();
+
+        // eliminamos la carpeta zip_backup
+        Tools::folderDelete(Tools::folder('zip_backup'));
+
+        Tools::log()->notice('record-updated-correctly');
+    }
+
+    private function switchDbCharsetAction(): void
+    {
+        if (false === $this->validateFormToken()) {
+            return;
+        }
+
+        // leemos el archivo config.php
+        $configFile = file_get_contents(Tools::folder('config.php'));
+
+        if (Tools::config('mysql_charset', 'utf8') === 'utf8mb4') {
+            $configFile = str_replace("'utf8mb4'", "'utf8'", $configFile);
+            $configFile = str_replace("'utf8mb4_unicode_520_ci'", "'utf8_bin'", $configFile);
+        } else {
+            $configFile = str_replace("'utf8'", "'utf8mb4'", $configFile);
+            $configFile = str_replace("'utf8_bin'", "'utf8mb4_unicode_520_ci'", $configFile);
+        }
+
+        // guardamos el archivo
+        if (false === file_put_contents(Tools::folder('config.php'), $configFile)) {
+            Tools::log()->error('record-save-error');
+            return;
+        }
+
+        Tools::log()->notice('record-updated-correctly');
     }
 
     private function zipFolder(string $fileName): bool
