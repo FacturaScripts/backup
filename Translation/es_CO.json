@@ -1,6 +1,6 @@
 {
     "backup": "Copia de seguridad",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
+    "backup-charset-error": "La codificación de la copia de seguridad es %db-charset%, mientras que en el condifg.php es %config-charset%. Pulsa el botón cambiar codificación antes de restaurar.",
     "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
     "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad. Como alternativa puedes comprimir la carpeta de FacturaScripts, que es equivalente a una copia de los archivos.",
     "backup-port-warning": "El puerto de MySQL debe ser el 3306, pero estás usando el %port%",

@@ -100,8 +100,6 @@ class Backup extends Controller
 
     private function checkDbBackupCharset(string $filePath): bool
     {
-        $configCharset = Tools::config('mysql_charset');
-
         // abrimos el archivo
         $file = fopen($filePath, 'r');
         if (false === $file) {
@@ -110,6 +108,7 @@ class Backup extends Controller
 
         // leemos las primeras 1000 líneas, si encontramos el charset, devolvemos true
         $line = 0;
+        $dbCharset = '';
         while ($line < 1000) {
             $line++;
             $buffer = fgets($file);
@@ -117,12 +116,25 @@ class Backup extends Controller
                 break;
             }
 
-            if (strpos($buffer, ' CHARSET=' . $configCharset . ' ') !== false) {
-                fclose($file);
-                return true;
+            foreach (['utf8', 'utf8mb3', 'utf8mb4'] as $charset) {
+                if (strpos($buffer, ' CHARSET=' . $charset . ' ') !== false) {
+                    $dbCharset = $charset;
+                    break 2;
+                }
             }
         }
 
+        // comparamos con el charset del config.php
+        $configCharset = Tools::config('mysql_charset', 'utf8');
+        if ($dbCharset === $configCharset) {
+            fclose($file);
+            return true;
+        }
+
+        Tools::log()->error('backup-charset-error', [
+            '%db-charset%' => $dbCharset,
+            '%config-charset%' => $configCharset
+        ]);
         fclose($file);
         return false;
     }
@@ -277,12 +289,8 @@ class Backup extends Controller
 
         // comprobamos si el charset en el backup es el mismo que en el config.php
         if (false === $this->checkDbBackupCharset($dbFile->getPathname())) {
-            Tools::log()->error('backup-charset-error');
             return;
         }
-
-        Tools::log()->error('no-backup-charset-error');
-        return;
 
         $this->dataBase->close();
         $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($dbFile->getPathname());
@@ -342,12 +350,28 @@ class Backup extends Controller
         // leemos el archivo config.php
         $configFile = file_get_contents(Tools::folder('config.php'));
 
-        if (Tools::config('mysql_charset', 'utf8') === 'utf8mb4') {
-            $configFile = str_replace("'utf8mb4'", "'utf8'", $configFile);
-            $configFile = str_replace("'utf8mb4_unicode_520_ci'", "'utf8_bin'", $configFile);
-        } else {
-            $configFile = str_replace("'utf8'", "'utf8mb4'", $configFile);
-            $configFile = str_replace("'utf8_bin'", "'utf8mb4_unicode_520_ci'", $configFile);
+        $configCharset = Tools::config('mysql_charset', 'utf8');
+        $configCollate = Tools::config('mysql_collate', 'utf8_bin');
+
+        $selectedCharset = $this->request->query->get('charset');
+        switch ($selectedCharset) {
+            case 'utf8':
+                $configFile = str_replace("'" . $configCharset . "'", "'utf8'", $configFile);
+                $configFile = str_replace("'" . $configCollate . "'", "'utf8_bin'", $configFile);
+                break;
+
+            case 'utf8mb3':
+                $configFile = str_replace("'" . $configCharset . "'", "'utf8mb3'", $configFile);
+                $configFile = str_replace("'" . $configCollate . "'", "'utf8mb3_bin'", $configFile);
+                break;
+
+            case 'utf8mb4':
+                $configFile = str_replace("'" . $configCharset . "'", "'utf8mb4'", $configFile);
+                $configFile = str_replace("'" . $configCollate . "'", "'utf8mb4_unicode_520_ci'", $configFile);
+                break;
+
+            default:
+                return;
         }
 
         // guardamos el archivo

@@ -57,10 +57,28 @@
                         </div>
                         <div class="card-footer p-2">
                             <button type="submit" class="btn btn-warning">{{ trans('restore') }}</button>
-                            <a href="?action=switch-db-charset&multireqtoken={{ formToken(false) }}"
-                               class="btn btn-secondary ml-2">
-                                {{ trans('switch-db-charset') }}
-                            </a>
+                            <div class="btn-group ml-2">
+                                <div class="dropdown">
+                                    <button class="btn btn-secondary dropdown-toggle" type="button"
+                                            data-toggle="dropdown" aria-expanded="false">
+                                        {{ trans('switch-db-charset') }}
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item"
+                                           href="?action=switch-db-charset&charset=utf8&multireqtoken={{ formToken(false) }}">
+                                            utf8
+                                        </a>
+                                        <a class="dropdown-item"
+                                           href="?action=switch-db-charset&charset=utf8mb3&multireqtoken={{ formToken(false) }}">
+                                            utf8mb3
+                                        </a>
+                                        <a class="dropdown-item"
+                                           href="?action=switch-db-charset&charset=utf8mb4&multireqtoken={{ formToken(false) }}">
+                                            utf8mb4
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
