@@ -1,19 +1,19 @@
 {
-    "name": "facturascripts/backups",
-    "description": "Description of project Backups.",
-    "authors": [
-        {
-            "name": "Carlos García Gómez",
-            "email": "carlos@facturascripts.com"
-        }
-    ],
-    "config": {
-        "platform": {
-            "php": "7.2.5"
-        }
-    },
-    "require": {
-        "coderatio/simple-backup": "1.0.*",
-      "ext-zip": "*"
+  "name": "facturascripts/backups",
+  "description": "Description of project Backups.",
+  "authors": [
+    {
+      "name": "Carlos García Gómez",
+      "email": "carlos@facturascripts.com"
     }
+  ],
+  "config": {
+    "platform": {
+      "php": "7.2.5"
+    }
+  },
+  "require": {
+    "coderatio/simple-backup": "1.0.*",
+    "ext-zip": "*"
+  }
 }

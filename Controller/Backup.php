@@ -176,6 +176,9 @@ class Backup extends Controller
         if (FS_DB_TYPE != 'mysql') {
             Tools::log()->error('mysql-support-only');
             return;
+        } elseif ($this->permissions->allowExport === false) {
+            Tools::log()->error('not-allowed-export');
+            return;
         }
 
         // si el puerto no es el puerto por defecto, mostramos un aviso
@@ -197,6 +200,11 @@ class Backup extends Controller
 
     private function downloadFilesAction(): void
     {
+        if ($this->permissions->allowExport === false) {
+            Tools::log()->error('not-allowed-export');
+            return;
+        }
+
         // creamos un archivo temporal
         $filePath = tempnam(FS_FOLDER, 'zip');
         if (false === $this->zipFolder($filePath)) {
@@ -280,6 +288,9 @@ class Backup extends Controller
     {
         if (false === $this->validateFormToken()) {
             return;
+        } elseif ($this->permissions->allowImport === false) {
+            Tools::log()->error('not-allowed-import');
+            return;
         }
 
         $dbFile = $this->request->files->get('db_file');
@@ -292,16 +303,23 @@ class Backup extends Controller
             return;
         }
 
+        // eliminamos todas las tablas
+        $this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
+        foreach ($this->dataBase->getTables() as $table) {
+            $this->dataBase->exec('DROP TABLE ' . $table);
+        }
         $this->dataBase->close();
-        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($dbFile->getPathname());
+
+        // importamos el backup
+        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
+            ->importFrom($dbFile->getPathname());
         if (false === $backup->getResponse()->status) {
             Tools::log()->error('record-save-error');
-            $this->dataBase->connect();
+            Cache::clear();
             return;
         }
 
         Tools::log()->notice('record-updated-correctly');
-        $this->dataBase->connect();
         Cache::clear();
         $this->redirect('login');
     }
@@ -309,6 +327,9 @@ class Backup extends Controller
     private function restoreFilesAction(): void
     {
         if (false === $this->validateFormToken()) {
+            return;
+        } elseif ($this->permissions->allowImport === false) {
+            Tools::log()->error('not-allowed-import');
             return;
         }
 
@@ -344,6 +365,9 @@ class Backup extends Controller
     private function switchDbCharsetAction(): void
     {
         if (false === $this->validateFormToken()) {
+            return;
+        } elseif ($this->permissions->allowUpdate === false) {
+            Tools::log()->error('not-allowed-update');
             return;
         }
 
