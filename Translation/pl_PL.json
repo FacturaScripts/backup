@@ -1,7 +1,7 @@
 {
     "backup": "Copia de seguridad",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "Kodowanie kopii zapasowej różni się od instalacji. Naciśnij przycisk zmiany kodowania przed przywróceniem.",
+    "backup-file-too-big": "Plik kopii zapasowej jest zbyt duży, aby przesłać go na serwer. Maksymalny rozmiar to %size% MB",
     "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad. Como alternativa puedes comprimir la carpeta de FacturaScripts, que es equivalente a una copia de los archivos.",
     "backup-port-warning": "Port MySQL powinien być 3306, ale używasz portu %port%",
     "download-backup": "Descargar copia de seguridad",
@@ -10,7 +10,7 @@
     "restore-backup": "Restaurar copia de seguridad",
     "restore-backup-p": "Si tienes los ficheros con tu base de datos y tus archivos, puedes restaurar los datos de FacturaScripts. Selecciona los dos ficheros y pulsa el botón restaurar.",
     "restore-backup-warning": "Advertencia: restaurar los datos de FacturaScripts es como volver al pasado. Se eliminará todo lo que no estuviese en la copia de seguridad, es decir, las facturas que hayas realizado después y no estén en la copia, se perderán.",
-    "restore-files": "Restaurar archivos",
-    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
+    "restore-files": "Przywróć pliki",
+    "restore-files-p": "Jeśli masz kopię zapasową plików, wybierz plik zip i naciśnij przycisk przywracania.",
     "switch-db-charset": "Cambiar codificación"
 }

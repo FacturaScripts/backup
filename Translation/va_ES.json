@@ -1,7 +1,7 @@
 {
     "backup": "Còpia de seguretat",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "La codificació de la còpia de seguretat és diferent a la de la instal·lació. Premeu el botó canviar codificació abans de restaurar.",
+    "backup-file-too-big": "L'arxiu de còpia de seguretat és massa gran per pujar-lo al servidor. La mida màxima és %size% MB",
     "backup-memory-warning": "Advertència: la còpia de seguretat ocupa %size% MB, però solament tens %memory% MB de memòria disponible. Insuficient per a realitzar la còpia de seguretat.",
     "backup-port-warning": "El port de MySQL ha de ser el 3306, però estàs utilitzant el %port%",
     "download-backup": "download-backup",

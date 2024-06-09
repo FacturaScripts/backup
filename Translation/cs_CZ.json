@@ -1,7 +1,7 @@
 {
     "backup": "Copia de seguridad",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "Chyba kódování zálohy je odlišná od instalace. Před obnovením klikněte na tlačítko Změnit kódování.",
+    "backup-file-too-big": "Soubor zálohy je příliš velký k nahrání na server. Maximální velikost je %size% MB",
     "backup-memory-warning": "Varování: Záloha zabírá %size% MB, ale máte k dispozici pouze %memory% MB paměti. Není dostatečná pro provedení zálohy.",
     "backup-port-warning": "Port MySQL by měl být 3306, ale používáte %port%",
     "download-backup": "Descargar copia de seguridad",

@@ -1,7 +1,7 @@
 {
     "backup": "Backup",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "The encoding of the backup is different from that of the installation. Press the change encoding button before restoring.",
+    "backup-file-too-big": "The backup file is too large to upload to the server. The maximum size is %size% MB",
     "backup-memory-warning": "Warning: the backup takes %size% MB, but you only have %memory% MB of memory available. Insufficient to perform the backup.",
     "backup-port-warning": "The MySQL port should be 3306, but you are using %port%",
     "download-backup": "Download backup",
@@ -10,7 +10,7 @@
     "restore-backup": "Restore backup",
     "restore-backup-p": "If you have the files with your database and your files, you can restore the FacturaScripts data. Select the two files and press the restore button.",
     "restore-backup-warning": "Warning: restoring FacturaScripts data is like going back in time. Everything that was not in the backup will be deleted, that is, the invoices that you have made later and are not in the copy, will be lost.",
-    "restore-files": "Restaurar archivos",
-    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
-    "switch-db-charset": "Cambiar codificación"
+    "restore-files": "Restore files",
+    "restore-files-p": "If you have the backup of the files, select that zip file and press the restore button.",
+    "switch-db-charset": "Change encoding"
 }

@@ -49,7 +49,7 @@
                             </p>
                             <div class="form-group">
                                 {{ trans('database') }}
-                                <input type="file" name="db_file" accept=".sql" class="form-control-file" required/>
+                                <input type="file" name="db_file" accept=".sql,.sql.gz" class="form-control-file" required/>
                             </div>
                             <p class="card-text text-muted">
                                 {{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
@@ -67,10 +67,6 @@
                                         <a class="dropdown-item"
                                            href="?action=switch-db-charset&charset=utf8&multireqtoken={{ formToken(false) }}">
                                             utf8
-                                        </a>
-                                        <a class="dropdown-item"
-                                           href="?action=switch-db-charset&charset=utf8mb3&multireqtoken={{ formToken(false) }}">
-                                            utf8mb3
                                         </a>
                                         <a class="dropdown-item"
                                            href="?action=switch-db-charset&charset=utf8mb4&multireqtoken={{ formToken(false) }}">

@@ -1,7 +1,7 @@
 {
     "backup": "Segurtasun kopia",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "Segurtasun kopiaaren enkodifikazioa instalazioarenaren ezberdin da. Berreskuratu aurretik enkodifikazioa aldatzeko botoia sakatu.",
+    "backup-file-too-big": "Segurtasun kopiaren fitxategia handiegia da zerbitzarian igotzeko. Maximoa %size% MB da",
     "backup-memory-warning": "Abisua: babes-kopia %size% MB hartzen du, baina %memory% MB soilik baditu memoria eskuragarri. Eremuan kopia ezinezkoa da.",
     "backup-port-warning": "MySQLren ataria 3306 izan behar da, baina %port% erabiltzen ari zara",
     "download-backup": "Segurtasun kopia deskargatu",

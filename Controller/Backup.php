@@ -124,6 +124,11 @@ class Backup extends Controller
             }
         }
 
+        // utf8mb3 es lo mismo que utf8
+        if ($dbCharset === 'utf8mb3') {
+            $dbCharset = 'utf8';
+        }
+
         // comparamos con el charset del config.php
         $configCharset = Tools::config('mysql_charset', 'utf8');
         if ($dbCharset === $configCharset) {
@@ -304,8 +309,16 @@ class Backup extends Controller
             return;
         }
 
+        // si el archivo es .sql.gz, lo convertimos a .sql
+        if (substr($dbFile->getClientOriginalName(), -7) === '.sql.gz') {
+            $sqlFile = $this->unzipDatabase($dbFile->getPathname());
+        } else {
+            $sqlFile = $dbFile->getPathname();
+        }
+
         // comprobamos si el charset en el backup es el mismo que en el config.php
-        if (false === $this->checkDbBackupCharset($dbFile->getPathname())) {
+        if (false === $this->checkDbBackupCharset($sqlFile)) {
+            unlink($sqlFile);
             return;
         }
 
@@ -317,18 +330,24 @@ class Backup extends Controller
         $this->dataBase->close();
 
         // importamos el backup
-        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
-            ->importFrom($dbFile->getPathname());
+        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($sqlFile);
         if (false === $backup->getResponse()->status) {
             Tools::log()->error('record-save-error');
             $this->dataBase->connect();
             Cache::clear();
+            unlink($sqlFile);
             return;
         }
 
         Tools::log()->notice('record-updated-correctly');
         $this->dataBase->connect();
         Cache::clear();
+        unlink($sqlFile);
+
+        // eliminamos las cookies
+        setcookie('fsNick', '', time() - 3600, Tools::config('route', '/'));
+        setcookie('fsLogkey', '', time() - 3600, Tools::config('route', '/'));
+
         $this->redirect('login');
     }
 
@@ -392,11 +411,6 @@ class Backup extends Controller
                 $configFile = str_replace("'" . $configCollate . "'", "'utf8_bin'", $configFile);
                 break;
 
-            case 'utf8mb3':
-                $configFile = str_replace("'" . $configCharset . "'", "'utf8mb3'", $configFile);
-                $configFile = str_replace("'" . $configCollate . "'", "'utf8mb3_bin'", $configFile);
-                break;
-
             case 'utf8mb4':
                 $configFile = str_replace("'" . $configCharset . "'", "'utf8mb4'", $configFile);
                 $configFile = str_replace("'" . $configCollate . "'", "'utf8mb4_unicode_520_ci'", $configFile);
@@ -413,6 +427,36 @@ class Backup extends Controller
         }
 
         Tools::log()->notice('record-updated-correctly');
+    }
+
+    private function unzipDatabase(string $gzFilePath): string
+    {
+        // abrimos el archivo .sql.gz
+        $gzFile = gzopen($gzFilePath, 'r');
+        if (false === $gzFile) {
+            Tools::log()->error('record-save-error');
+            return '';
+        }
+
+        // creamos el archivo .sql
+        $name = substr($gzFilePath, 0, -3);
+        $sqlFile = fopen($name, 'w');
+        if (false === $sqlFile) {
+            gzclose($gzFile);
+            Tools::log()->error('record-save-error');
+            return '';
+        }
+
+        // copiamos el contenido del archivo .sql.gz al archivo .sql
+        while ($buffer = gzread($gzFile, 4096)) {
+            fwrite($sqlFile, $buffer);
+        }
+
+        // cerramos los archivos
+        fclose($sqlFile);
+        gzclose($gzFile);
+
+        return $name;
     }
 
     private function zipFolder(string $fileName): bool

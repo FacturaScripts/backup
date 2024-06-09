@@ -1,7 +1,7 @@
 {
     "backup": "backup",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "L'encoding del backup è diverso dall'installazione. Premere il pulsante Cambia encoding prima di ripristinare.",
+    "backup-file-too-big": "Il file di backup è troppo grande per essere caricato sul server. La dimensione massima è %size% MB",
     "backup-memory-warning": "Avviso memoria: il backup occupa %size% MB, ma hai solo %memory% MB di memoria disponibile. Non sufficiente per eseguire il backup.",
     "backup-port-warning": "Il porto di MySQL deve essere 3306, ma stai utilizzando il %port%",
     "download-backup": "download-backup",
