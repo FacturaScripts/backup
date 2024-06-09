@@ -24,10 +24,10 @@
                         <p class="card-text">{{ trans('download-backup-p') }}</p>
                     </div>
                     <div class="card-footer p-2">
-                        <a href="{{ fsc.url() }}?action=download-db" class="btn btn-primary mr-2">
+                        <a href="#" class="btn btn-primary btn-spin-action mr-2" onclick="return downloadDbBackup()">
                             <i class="fas fa-database mr-2"></i> {{ trans('database') }}
                         </a>
-                        <a href="{{ fsc.url() }}?action=download-files" class="btn btn-secondary">
+                        <a href="#" class="btn btn-secondary btn-spin-action" onclick="return downloadFilesBackup()">
                             <i class="fas fa-download mr-2"></i> {{ trans('files') }}
                         </a>
                     </div>
@@ -49,14 +49,17 @@
                             </p>
                             <div class="form-group">
                                 {{ trans('database') }}
-                                <input type="file" name="db_file" accept=".sql,.sql.gz" class="form-control-file" required/>
+                                <input type="file" name="db_file" accept=".sql,.sql.gz" class="form-control-file"
+                                       required/>
                             </div>
                             <p class="card-text text-muted">
                                 {{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
                             </p>
                         </div>
                         <div class="card-footer p-2">
-                            <button type="submit" class="btn btn-warning">{{ trans('restore') }}</button>
+                            <button type="submit" class="btn btn-warning btn-spin-action">
+                                {{ trans('restore') }}
+                            </button>
                             <div class="btn-group ml-2">
                                 <div class="dropdown">
                                     <button class="btn btn-secondary dropdown-toggle" type="button"
@@ -99,7 +102,9 @@
                             </p>
                         </div>
                         <div class="card-footer p-2">
-                            <button type="submit" class="btn btn-warning">{{ trans('restore') }}</button>
+                            <button type="submit" class="btn btn-warning btn-spin-action">
+                                {{ trans('restore') }}
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -111,6 +116,74 @@
 {% block javascripts %}
     {{ parent() }}
     <script>
+        function downloadDbBackup() {
+            animateSpinner('add');
+
+            let download_url = '{{ fsc.url() }}?action=download-db&multireqtoken={{ formToken(false) }}';
+            // le añadimos números aleatorios para cambiar el token
+            download_url += Math.floor(Math.random() * 1000000);
+
+            let xhr = new XMLHttpRequest();
+            xhr.open('GET', download_url, true);
+            xhr.responseType = 'blob';
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    let blob = new Blob([xhr.response], {type: 'application/octet-stream'});
+                    let url = window.URL.createObjectURL(blob);
+                    let a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backup_' + (new Date()).toISOString().slice(0, 19).replace(/[-:]/g, '') + '.sql';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+                animateSpinner('remove');
+            };
+
+            xhr.onerror = function () {
+                animateSpinner('remove');
+                alert('error');
+            };
+
+            xhr.send();
+
+            return false;
+        }
+
+        function downloadFilesBackup() {
+            animateSpinner('add');
+
+            let download_url = '{{ fsc.url() }}?action=download-files&multireqtoken={{ formToken(false) }}';
+            // le añadimos números aleatorios para cambiar el token
+            download_url += Math.floor(Math.random() * 1000000);
+
+            let xhr = new XMLHttpRequest();
+            xhr.open('GET', download_url, true);
+            xhr.responseType = 'blob';
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    let blob = new Blob([xhr.response], {type: 'application/octet-stream'});
+                    let url = window.URL.createObjectURL(blob);
+                    let a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backup_' + (new Date()).toISOString().slice(0, 19).replace(/[-:]/g, '') + '.zip';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+                animateSpinner('remove');
+            };
+
+            xhr.onerror = function () {
+                animateSpinner('remove');
+                alert('error');
+            };
+
+            xhr.send();
+
+            return false;
+        }
+
         $(document).ready(function () {
             $('#f_restore_db').on('submit', function (e) {
                 let fileInput = $(this).find('input[type=file]');

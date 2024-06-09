@@ -27,10 +27,8 @@ use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\User;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use ZipArchive;
 
 /**
@@ -184,6 +182,8 @@ class Backup extends Controller
         } elseif ($this->permissions->allowExport === false) {
             Tools::log()->error('not-allowed-export');
             return;
+        } elseif (false === $this->validateFormToken()) {
+            return;
         }
 
         // si el puerto no es el puerto por defecto, mostramos un aviso
@@ -208,21 +208,22 @@ class Backup extends Controller
         if ($this->permissions->allowExport === false) {
             Tools::log()->error('not-allowed-export');
             return;
+        } elseif (false === $this->validateFormToken()) {
+            return;
         }
 
         // creamos un archivo temporal
-        $filePath = tempnam(FS_FOLDER, 'zip');
+        $filePath = Tools::folder(FS_DB_NAME . '_' . date('Y-m-d_H-i-s') . '.zip');
         if (false === $this->zipFolder($filePath)) {
             Tools::log()->error('record-save-error');
             return;
         }
 
         $this->setTemplate(false);
-        $this->response = new BinaryFileResponse($filePath);
-        $this->response->setContentDisposition(
-            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
-            FS_DB_NAME . '_' . date('Y-m-d_H-i-s') . '.zip'
-        );
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . basename($filePath) . '"');
+        header('Content-Length: ' . filesize($filePath));
+        readfile($filePath);
 
         unlink($filePath);
     }
@@ -453,8 +454,8 @@ class Backup extends Controller
         }
 
         // cerramos los archivos
-        fclose($sqlFile);
         gzclose($gzFile);
+        fclose($sqlFile);
 
         return $name;
     }
