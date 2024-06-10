@@ -228,35 +228,40 @@ class Backup extends Controller
         unlink($filePath);
     }
 
-    private function fixSqlFile(string $filePath): void
+    private function fixSqlFile(string $filePath): string
     {
         // abrimos el archivo
-        $file = fopen($filePath, 'wr+');
+        $file = fopen($filePath, 'r');
         if (false === $file) {
-            return;
+            return '';
         }
 
-        // leemos las primeras 100 líneas
-        $line = 0;
-        while ($line < 100) {
-            $line++;
-            $buffer = fgets($file);
-            if (false === $buffer) {
-                break;
-            }
-
-            // si encontramos SET time_zone, nos aseguramos que termine en ;
-            if (strpos($buffer, 'SET time_zone') === false) {
-                continue;
-            }
-
-            $buffer = rtrim($buffer);
-            if (substr($buffer, -1) !== ';') {
-                fwrite($file, ';' . PHP_EOL);
-            }
+        // creamos un archivo temporal
+        $newFilePath = Tools::folder('temp.sql');
+        $newFile = fopen($newFilePath, 'w');
+        if (false === $newFile) {
+            fclose($file);
+            return $filePath;
         }
 
+        // leemos el archivo línea a línea
+        while ($buffer = fgets($file)) {
+            $line = trim($buffer);
+
+            // si la línea es SET time_zone, nos aseguramos de que termine en ;
+            if (strpos($line, 'SET time_zone') === 0 && substr($line, -1) !== ';') {
+                $line .= ';';
+            }
+
+            // añadimos la línea al archivo temporal
+            fwrite($newFile, $line . PHP_EOL);
+        }
+
+        // cerramos los archivos
         fclose($file);
+        fclose($newFile);
+
+        return $newFilePath;
     }
 
     private function getMemoryLimitMb(): int
@@ -345,7 +350,12 @@ class Backup extends Controller
         if (substr($dbFile->getClientOriginalName(), -7) === '.sql.gz') {
             $sqlFile = $this->unzipDatabase($dbFile->getPathname());
         } else {
-            $sqlFile = $dbFile->getPathname();
+            $sqlFile = $this->fixSqlFile($dbFile->getPathname());
+        }
+
+        if (empty($sqlFile)) {
+            Tools::log()->error('no-file-received');
+            return;
         }
 
         // comprobamos si el charset en el backup es el mismo que en el config.php
@@ -353,9 +363,6 @@ class Backup extends Controller
             unlink($sqlFile);
             return;
         }
-
-        // corregimos errores en el sql
-        $this->fixSqlFile($sqlFile);
 
         // eliminamos todas las tablas
         $this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
