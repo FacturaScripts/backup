@@ -186,21 +186,25 @@
 
         $(document).ready(function () {
             $('#f_restore_db').on('submit', function (e) {
+                animateSpinner('add');
                 let fileInput = $(this).find('input[type=file]');
                 let fileSize = fileInput[0].files[0].size; // tamaño del archivo en bytes
 
                 if (fileSize > {{ fsc.getMaxFileUpload() }} * 1024 * 1024) { // MB
                     e.preventDefault();
                     alert('{{ trans('backup-file-too-big', {'%size%': fsc.getMaxFileUpload()}) }}');
+                    animateSpinner('remove');
                 }
             });
             $('#f_restore_files').on('submit', function (e) {
+                animateSpinner('add');
                 let fileInput = $(this).find('input[type=file]');
                 let fileSize = fileInput[0].files[0].size; // tamaño del archivo en bytes
 
                 if (fileSize > {{ fsc.getMaxFileUpload() }} * 1024 * 1024) { // MB
                     e.preventDefault();
                     alert('{{ trans('backup-file-too-big', {'%size%': fsc.getMaxFileUpload()}) }}');
+                    animateSpinner('remove');
                 }
             });
         });

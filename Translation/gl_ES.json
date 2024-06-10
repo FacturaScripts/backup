@@ -1,7 +1,7 @@
 {
     "backup": "Copia de seguridade",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "A codificación da copia de seguridade é distinta á da instalación. Preme o botón cambiar codificación antes de restaurar.",
+    "backup-file-too-big": "O arquivo de copia de seguridade é demasiado grande para subilo ao servidor. O tamaño máximo é %size% MB",
     "backup-memory-warning": "Advertencia: a copia de seguridade ocupa %size% MB, pero só ten %memory% MB de memoria dispoñible. Insuficiente para realizar a copia de seguridade.",
     "backup-port-warning": "O porto de MySQL debe ser o 3306, pero estás usando o %port%",
     "download-backup": "Baixar cópia de segurança",
@@ -10,7 +10,7 @@
     "restore-backup": "Restaurar copia de seguridade",
     "restore-backup-p": "Se tes os ficheiros coa túa base de datos e os teus arquivos, podes restaurar os datos de  FacturaScripts. Selecciona os dous ficheiros e pulsa o botón restaurar.",
     "restore-backup-warning": "Advertencia: restaurar os datos de  FacturaScripts é como volver ao pasado. Eliminarase todo o que non estivese na copia de seguridade, é dicir, as facturas que realizases despois e non estean na copia, perderanse.",
-    "restore-files": "Restaurar archivos",
-    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
+    "restore-files": "Restaurar arquivos",
+    "restore-files-p": "Se tes a copia de seguridade dos arquivos, selecciona ese arquivo zip e preme o botón restaurar.",
     "switch-db-charset": "Cambiar codificación"
 }
