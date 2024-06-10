@@ -228,6 +228,37 @@ class Backup extends Controller
         unlink($filePath);
     }
 
+    private function fixSqlFile(string $filePath): void
+    {
+        // abrimos el archivo
+        $file = fopen($filePath, 'wr+');
+        if (false === $file) {
+            return;
+        }
+
+        // leemos las primeras 100 líneas
+        $line = 0;
+        while ($line < 100) {
+            $line++;
+            $buffer = fgets($file);
+            if (false === $buffer) {
+                break;
+            }
+
+            // si encontramos SET time_zone, nos aseguramos que termine en ;
+            if (strpos($buffer, 'SET time_zone') === false) {
+                continue;
+            }
+
+            $buffer = rtrim($buffer);
+            if (substr($buffer, -1) !== ';') {
+                fwrite($file, ';' . PHP_EOL);
+            }
+        }
+
+        fclose($file);
+    }
+
     private function getMemoryLimitMb(): int
     {
         $memoryLimit = ini_get('memory_limit');
@@ -322,6 +353,9 @@ class Backup extends Controller
             unlink($sqlFile);
             return;
         }
+
+        // corregimos errores en el sql
+        $this->fixSqlFile($sqlFile);
 
         // eliminamos todas las tablas
         $this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
@@ -478,7 +512,7 @@ class Backup extends Controller
             }
 
             $filePath = $file->getRealPath();
-            $relativePath = substr($filePath, strlen(FS_FOLDER) + 1);
+            $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', substr($filePath, strlen(FS_FOLDER) + 1));
 
             $zip->addFile($filePath, $relativePath);
         }
