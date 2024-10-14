@@ -19,7 +19,7 @@
 
 namespace FacturaScripts\Plugins\Backup\Controller;
 
-use Coderatio\SimpleBackup\SimpleBackup;
+use FacturaScripts\Plugins\Backup\Lib\SimpleBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Cache;
@@ -200,7 +200,7 @@ class Backup extends Controller
 
         $this->setTemplate(false);
         SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
-            ->downloadAfterExport(FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));
+            ->storeAfterExportTo(FS_FOLDER."/MyFiles/Backups/",FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));
     }
 
     private function downloadFilesAction(): void
