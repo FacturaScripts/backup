@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2021 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -16,25 +16,29 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Plugins\Backup;
+
+use FacturaScripts\Core\Template\InitClass;
 
 /**
  * Composer autoload.
  */
 require_once __DIR__ . '/vendor/autoload.php';
 
-use FacturaScripts\Core\Base\InitClass;
 
 class Init extends InitClass
 {
 
-    public function init()
+    public function init(): void
     {
-        ;
     }
 
-    public function update()
+    public function uninstall(): void
     {
-        ;
+    }
+
+    public function update(): void
+    {
     }
 }
