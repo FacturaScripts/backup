@@ -23,12 +23,12 @@ use Coderatio\SimpleBackup\SimpleBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Cache;
+use FacturaScripts\Core\Internal\UploadedFile;
+use FacturaScripts\Core\Response;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\User;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\Response;
 use ZipArchive;
 
 /**
@@ -53,7 +53,7 @@ class Backup extends Controller
         $data = parent::getPageData();
         $data['menu'] = 'admin';
         $data['title'] = 'backup';
-        $data['icon'] = 'fas fa-download';
+        $data['icon'] = 'fa-solid fa-download';
         return $data;
     }
 
