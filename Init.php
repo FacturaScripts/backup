@@ -23,18 +23,23 @@ namespace FacturaScripts\Plugins\Backup;
  */
 require_once __DIR__ . '/vendor/autoload.php';
 
-use FacturaScripts\Core\Base\InitClass;
+use FacturaScripts\Core\Template\InitClass;
 
 class Init extends InitClass
 {
 
-    public function init()
+    public function init() : void
+    {
+        $this->loadExtension(new Extension\Controller\ListFacturaCliente());
+    }
+
+    public function update(): void
     {
         ;
     }
 
-    public function update()
+    public function uninstall(): void
     {
-        ;
+        // TODO: Implement uninstall() method.
     }
 }
