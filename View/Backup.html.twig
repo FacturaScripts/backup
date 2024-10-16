@@ -24,7 +24,7 @@
                         <p class="card-text">{{ trans('download-backup-p') }}</p>
                     </div>
                     <div class="card-footer p-2">
-                        <a href="#" class="btn btn-primary btn-spin-action mr-2" onclick="return downloadDbBackup()">
+                        <a href="#" class="btn btn-primary btn-spin-action mr-2" onclick="return generateDbBackup(this)">
                             <i class="fas fa-database mr-2"></i> {{ trans('database') }}
                         </a>
                         <a href="#" class="btn btn-secondary btn-spin-action" onclick="return downloadFilesBackup()">
@@ -116,7 +116,7 @@
 {% block javascripts %}
     {{ parent() }}
     <script>
-        function downloadDbBackup() {
+        function generateDbBackup(btn) {
             animateSpinner('add');
 
             let download_url = '{{ fsc.url() }}?action=download-db&multireqtoken={{ formToken(false) }}';
@@ -125,17 +125,25 @@
 
             let xhr = new XMLHttpRequest();
             xhr.open('GET', download_url, true);
-            xhr.responseType = 'blob';
 
             xhr.onload = function () {
                 if (xhr.status === 200) {
-                    let blob = new Blob([xhr.response], {type: 'application/octet-stream'});
-                    let url = window.URL.createObjectURL(blob);
-                    let a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'backup_' + (new Date()).toISOString().slice(0, 19).replace(/[-:]/g, '') + '.sql';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
+
+                    let response = JSON.parse(xhr.responseText);
+                    let backupUrl = response.backupUrl;
+
+                    if (backupUrl) {
+                        btn.innerHTML = '<i class="fas fa-database mr-2"></i> Descargar';
+                        btn.onclick = function() {
+                            return downloadBackup(backupUrl);
+                        };
+                        btn.classList.remove('btn-primary');
+                        btn.classList.add('btn-warning');
+                    } else {
+                        alert("No se pudo obtener el url del backup.");
+                    }
+                }else {
+                    alert("Error al generar el backup");
                 }
                 animateSpinner('remove');
             };
@@ -147,6 +155,15 @@
 
             xhr.send();
 
+            return false;
+        }
+
+        function downloadBackup(backupUrl) {
+            if (backupUrl) {
+                window.location.href = backupUrl;
+            } else {
+                alert('El url del backup no está disponible.');
+            }
             return false;
         }
 

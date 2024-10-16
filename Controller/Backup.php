@@ -19,7 +19,7 @@
 
 namespace FacturaScripts\Plugins\Backup\Controller;
 
-use Coderatio\SimpleBackup\SimpleBackup;
+use FacturaScripts\Plugins\Backup\Lib\SimpleBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Cache;
@@ -27,9 +27,10 @@ use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\User;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\Response;
+use FacturaScripts\Core\UploadedFile;
+use FacturaScripts\Core\Response;
 use ZipArchive;
+use FacturaScripts\Core\Lib\MyFilesToken;
 
 /**
  * Backup and restore database and user files of application
@@ -199,8 +200,28 @@ class Backup extends Controller
         }
 
         $this->setTemplate(false);
-        SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
-            ->downloadAfterExport(FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));
+
+        $fileName = FS_DB_NAME . '_' . date('Y-m-d_H-i-s');
+
+        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
+            ->storeAfterExportTo(FS_FOLDER."/MyFiles/Backups/", $fileName);
+
+        if(!$backup->getResponse()){
+            $this->response->setHttpCode(500);
+            return;
+        }
+
+        Cache::set('backup-db-last', $fileName);
+
+        $filePath = "MyFiles/Backups/".$fileName.".sql";
+        $url = $filePath . '?myft=' . MyFilesToken::get($filePath, false);
+
+        $data = [
+            'backupUrl' => $url
+        ];
+
+        $this->response->headers->set('Content-Type', 'application/json');
+        $this->response->setContent(json_encode($data));
     }
 
     private function downloadFilesAction(): void
