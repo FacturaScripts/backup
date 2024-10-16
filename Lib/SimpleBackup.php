@@ -41,18 +41,55 @@ class SimpleBackup extends BaseSimpleBackup
 
         $this->export_name = $export_name;
 
-        if (!file_exists($path_to_store) && !mkdir($path_to_store) && !is_dir($path_to_store)) {
-            throw new RuntimeException(sprintf('Directory "%s" was not created', $path_to_store));
+        if (!file_exists($path_to_store) && !mkdir($path_to_store, 0777, true) && !is_dir($path_to_store)) {
+            throw new RuntimeException(sprintf('No se pudo crear el directorio "%s"', $path_to_store));
         }
 
         $file_path = $path_to_store . '/' . $export_name;
 
         $this->prepareExportContentsFrom($file_path);
 
-        $this->response['message'] = 'Export finished successfully.';
+        $this->contents = Configurator::insertDumpHeader(
+            $this->connection,
+            $this->config
+        );
+
+
+        $temp_file_path = $file_path . '.tmp';
+
+        if (file_put_contents($temp_file_path, $this->contents) === false) {
+            throw new RuntimeException('No se pudo escribir el contenido en el archivo temporal.');
+        }
+
+        $originalFile = fopen($file_path, 'r');
+        if ($originalFile === false) {
+            unlink($temp_file_path);
+            throw new RuntimeException('No se pudo abrir el archivo original para lectura.');
+        }
+
+        $tempFile = fopen($temp_file_path, 'a');
+        if ($tempFile === false) {
+            fclose($originalFile);
+            unlink($temp_file_path);
+            throw new RuntimeException('No se pudo abrir el archivo temporal para escritura.');
+        }
+
+        stream_copy_to_stream($originalFile, $tempFile);
+
+        fclose($originalFile);
+        fclose($tempFile);
+
+        if (!rename($temp_file_path, $file_path)) {
+            unlink($temp_file_path);
+            throw new RuntimeException('No se pudo reemplazar el archivo original con el archivo temporal.');
+        }
+
+        $this->response['message'] = 'Exportación finalizada con éxito.';
 
         return $this;
     }
+
+
 
     protected function prepareExportContentsFrom($file_path)
     {
@@ -76,11 +113,6 @@ class SimpleBackup extends BaseSimpleBackup
             }
 
             $this->provider->start($file_path);
-
-            $this->contents = Configurator::insertDumpHeader(
-                $this->connection,
-                $this->config
-            );
 
         } catch (\Exception $e) {
             $this->response = [
