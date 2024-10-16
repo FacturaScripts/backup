@@ -49,11 +49,6 @@ class SimpleBackup extends BaseSimpleBackup
 
         $this->prepareExportContentsFrom($file_path);
 
-
-//        $file = fopen($file_path, 'wb') or die('Unable to open file!');
-//        fwrite($file, $this->contents);
-//        fclose($file);
-
         $this->response['message'] = 'Export finished successfully.';
 
         return $this;
@@ -87,7 +82,6 @@ class SimpleBackup extends BaseSimpleBackup
                 $this->config
             );
 
-         //   $this->contents .= file_get_contents($file_path);
         } catch (\Exception $e) {
             $this->response = [
                 'status' => false,
