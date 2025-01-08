@@ -1,16 +1,18 @@
 {
     "backup": "Cópia de segurança",
-    "backup-charset-error": "A codificação do backup é diferente da instalação. Clique no botão mudar codificação antes de restaurar.",
-    "backup-file-too-big": "O arquivo de backup é muito grande para ser enviado para o servidor. O tamanho máximo é de %size% MB",
+    "backup-charset-error": "A codificação do backup é %db-charset%, enquanto que no config.php é %config-charset%. Clique no botão mudar codificação antes de restaurar.",
+    "backup-file-too-big": "O arquivo de backup é demasiado grande para ser enviado para o servidor. O tamanho máximo é de %size% MB",
     "backup-memory-warning": "Aviso: o backup ocupa %size% MB, mas só tens %memory% MB de memória disponível. Insuficiente para fazer o backup.",
-    "backup-port-warning": "A porta do MySQL deve ser a 3306, mas você está usando a %port%",
+    "backup-port-warning": "A porta do MySQL deve ser a 3306, mas está a usar a %port%",
     "download-backup": "Baixar cópia de segurança",
     "download-backup-p": "Baixa a cópia de segurança da tua base de dados e outra dos teus ficheiros. Guarda estes ficheiros num lugar seguro. Se for preciso restaurar FacturaScripts, necessitarás deles.",
-    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
-    "restore-backup": "Restaurar cópia de segurança",
-    "restore-backup-p": "Se tens a cópia da tua base de dados e ficheiros, podes restaurar os dados de FacturaScripts. Seleciona os 2 arquivos da cópia de segurança e preme no botão restaurar",
+    "file-ready-to-download": "Archivo listo para descargar",
+    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
+    "mysql-support-only": "E",
+    "restore-backup": "R",
+    "restore-backup-p": "Se tens a cópia de segurança da tua base de dados, seleciona o arquivo sql e clica em restaurar",
     "restore-backup-warning": "Advertência: Restaurar FacturaScripts é como regressar ao passado no tempo. Tudo o que não estiver na cópia de segurança será eliminado, isto é, as faturas que realizares depois da cópia e não estivessem nela serão perdidas",
-    "restore-files": "Restaurar archivos",
-    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
-    "switch-db-charset": "Cambiar codificación"
+    "restore-files": "Restaurar arquivos",
+    "restore-files-p": "Se você tiver o backup dos arquivos, selecione esse arquivo zip e clique no botão restaurar.",
+    "switch-db-charset": "Alterar codificação"
 }

@@ -6,6 +6,8 @@
     "backup-port-warning": "The MySQL port should be 3306, but you are using %port%",
     "download-backup": "Download backup",
     "download-backup-p": "Download a backup copy of your database and another of your files. Keep these files in a safe place. If at any time you want to restore FacturaScripts data, you will need these files.",
+    "file-ready-to-download": "Archivo listo para descargar",
+    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
     "mysql-support-only": "This plugin only works on MySQL",
     "restore-backup": "Restore backup",
     "restore-backup-p": "If you have the files with your database and your files, you can restore the FacturaScripts data. Select the two files and press the restore button.",

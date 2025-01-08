@@ -6,6 +6,8 @@
     "backup-port-warning": "El port de MySQL ha de ser el 3306, però estàs utilitzant el %port%",
     "download-backup": "Descarregar còpia de seguretat",
     "download-backup-p": "Descarrega una còpia de seguretat de la base de dades i una altra dels teus arxius. Guarda aquests fitxers en un lloc segur. Si en cualsevol moment voleu recuperar les dades de FacturaScripts, necessitaràs aquests fitxers.",
+    "file-ready-to-download": "Archivo listo para descargar",
+    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
     "mysql-support-only": "Aquest plugin només funciona sobre MySQL",
     "restore-backup": "Restaurar còpia de seguretat",
     "restore-backup-p": "Si tens els fitxers amb la teva base de dades i els teus arxius, pots restaurar les dades de FacturaScripts. Selecciona els dos fitxers i prem el botó restaurar.",

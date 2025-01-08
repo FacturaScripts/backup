@@ -1,16 +1,18 @@
 {
     "backup": "Copie de sauvegarde",
-    "backup-charset-error": "La codificación de la copia de seguridad est différente de celle de l'installation. Appuyez sur le bouton changer l'encodage avant de restaurer.",
-    "backup-file-too-big": "Le fichier de sauvegarde est trop volumineux pour être téléchargé sur le serveur. La taille maximale est de %size% Mo",
+    "backup-charset-error": "Le cryptage de la sauvegarde est différent de celui de l'installation. Appuyez sur le bouton de changement d'encodage avant de procéder à la restauration.",
+    "backup-file-too-big": "Le fichier de sauvegarde est trop volumineux pour être téléchargé sur le serveur. La taille maximale est de %size% MB",
     "backup-memory-warning": "Avertissement : la sauvegarde occupe %size% Mo, mais vous disposez uniquement de %memory% Mo de mémoire disponible. Insuffisant pour effectuer la sauvegarde.",
-    "backup-port-warning": "Le port MySQL doit être 3306, mais vous utilisez le %port%",
+    "backup-port-warning": "Le port MySQL devrait être 3306, mais vous utilisez %port%.",
     "download-backup": "Télécharger la copie de sauvegarde",
     "download-backup-p": "Téléchargez une copie de sauvegarde de votre base de données et de vos fichiers. Gardez-les dans un endroit sûr. Si vous désirez restaurer vos données FacturaScripts à l'avenir, vous en aurez besoin.",
-    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
-    "restore-backup": "Restaurer la copie de sauvegarde",
-    "restore-backup-p": "Si vous disposez de vos fichiers et de votre base de données, vous pouvez restaurer les données de FacturaScripts. Sélectionnez les deux fichiers et cliquez sur le bouton Restaurer.",
+    "file-ready-to-download": "Archivo listo para descargar",
+    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
+    "mysql-support-only": "Ce plugin fonctionne uniquement sur MySQL",
+    "restore-backup": "Restaurer la sauvegarde",
+    "restore-backup-p": "Si vous avez vos fichiers et votre base de données, vous pouvez restaurer les données de FacturaScripts. Sélectionnez les deux fichiers et cliquez sur le bouton Restaurer.",
     "restore-backup-warning": "Avertissement : la restauration des données de FacturaScripts revient à effectuer un retour dans le temps. Tout ce qui ne se trouve pas dans la sauvegarde sera effacé, autrement dit les factures que vous avez émises par la suite et qui ne se trouvent pas dans la copie seront perdues.",
     "restore-files": "Restaurar archivos",
-    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
-    "switch-db-charset": "Cambiar codificación"
+    "restore-files-p": "Si vous avez sauvegardé les fichiers, sélectionnez ce fichier zip et appuyez sur le bouton de restauration.",
+    "switch-db-charset": "Modifier le codage"
 }

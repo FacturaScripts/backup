@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2021-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2025 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -38,6 +38,12 @@ use ZipArchive;
  */
 class Backup extends Controller
 {
+    /** @var string */
+    public $db_file_name = '';
+
+    /** @var string */
+    public $zip_file_name = '';
+
     /**
      * Return the max file size that can be uploaded.
      *
@@ -53,7 +59,7 @@ class Backup extends Controller
         $data = parent::getPageData();
         $data['menu'] = 'admin';
         $data['title'] = 'backup';
-        $data['icon'] = 'fas fa-download';
+        $data['icon'] = 'fa-solid fa-download';
         return $data;
     }
 
@@ -70,12 +76,20 @@ class Backup extends Controller
 
         $action = $this->request->get('action', '');
         switch ($action) {
-            case 'download-db':
-                $this->downloadDbAction();
+            case 'create-sql-file':
+                $this->createSqlAction();
                 break;
 
-            case 'download-files':
-                $this->downloadFilesAction();
+            case 'create-zip-file':
+                $this->createZipAction();
+                break;
+
+            case 'download-sql-file':
+                $this->downloadSqlAction();
+                break;
+
+            case 'download-zip-file':
+                $this->downloadZipAction();
                 break;
 
             case 'restore-backup':
@@ -142,6 +156,76 @@ class Backup extends Controller
         return false;
     }
 
+    protected function createSqlAction(): void
+    {
+        if (FS_DB_TYPE != 'mysql') {
+            Tools::log()->error('mysql-support-only');
+            return;
+        } elseif ($this->permissions->allowExport === false) {
+            Tools::log()->error('not-allowed-export');
+            return;
+        } elseif (false === $this->validateFormToken()) {
+            return;
+        }
+
+        // si el puerto no es el puerto por defecto, mostramos un aviso
+        if (FS_DB_PORT != 3306) {
+            Tools::log()->warning('backup-port-warning', [
+                '%port%' => FS_DB_PORT
+            ]);
+        }
+
+        if (false === extension_loaded('pdo_mysql')) {
+            Tools::log()->error('pdo-mysql-support-only');
+            return;
+        }
+
+        $folder = Tools::folder('MyFiles', 'Backups');
+        if (false === Tools::folderCheckOrCreate($folder)) {
+            Tools::log()->error('folder-create-error');
+            return;
+        }
+
+        $file_name = date('Y-m-d_H-i-s') . '.sql';
+        SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
+            ->storeAfterExportTo($folder, $file_name);
+
+        $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
+        if (false === file_exists($file_path)) {
+            Tools::log()->error('record-save-error');
+            return;
+        }
+
+        $this->db_file_name = $file_name;
+        Tools::log()->notice('file-ready-to-download');
+    }
+
+    protected function createZipAction(): void
+    {
+        if ($this->permissions->allowExport === false) {
+            Tools::log()->error('not-allowed-export');
+            return;
+        } elseif (false === $this->validateFormToken()) {
+            return;
+        }
+
+        $folder = Tools::folder('MyFiles', 'Backups');
+        if (false === Tools::folderCheckOrCreate($folder)) {
+            Tools::log()->error('folder-create-error');
+            return;
+        }
+
+        // creamos un archivo
+        $file_path = Tools::folder('MyFiles', 'Backups', date('Y-m-d_H-i-s') . '.zip');
+        if (false === $this->zipFolder($file_path)) {
+            Tools::log()->error('record-save-error');
+            return;
+        }
+
+        $this->zip_file_name = basename($file_path);
+        Tools::log()->notice('file-ready-to-download');
+    }
+
     private function defaultChecks(): void
     {
         // obtenemos el límite de memoria
@@ -174,36 +258,7 @@ class Backup extends Controller
         }
     }
 
-    private function downloadDbAction(): void
-    {
-        if (FS_DB_TYPE != 'mysql') {
-            Tools::log()->error('mysql-support-only');
-            return;
-        } elseif ($this->permissions->allowExport === false) {
-            Tools::log()->error('not-allowed-export');
-            return;
-        } elseif (false === $this->validateFormToken()) {
-            return;
-        }
-
-        // si el puerto no es el puerto por defecto, mostramos un aviso
-        if (FS_DB_PORT != 3306) {
-            Tools::log()->warning('backup-port-warning', [
-                '%port%' => FS_DB_PORT
-            ]);
-        }
-
-        if (false === extension_loaded('pdo_mysql')) {
-            Tools::log()->error('pdo-mysql-support-only');
-            return;
-        }
-
-        $this->setTemplate(false);
-        SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
-            ->downloadAfterExport(FS_DB_NAME . '_' . date('Y-m-d_H-i-s'));
-    }
-
-    private function downloadFilesAction(): void
+    private function downloadSqlAction(): void
     {
         if ($this->permissions->allowExport === false) {
             Tools::log()->error('not-allowed-export');
@@ -212,20 +267,53 @@ class Backup extends Controller
             return;
         }
 
-        // creamos un archivo temporal
-        $filePath = Tools::folder(FS_DB_NAME . '_' . date('Y-m-d_H-i-s') . '.zip');
-        if (false === $this->zipFolder($filePath)) {
-            Tools::log()->error('record-save-error');
+        $file_name = $this->request->request->get('file_name', '');
+        if (empty($file_name)) {
+            Tools::log()->warning('no-file-received');
+            return;
+        }
+
+        $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
+        if (false === file_exists($file_path)) {
+            Tools::log()->error('file-not-found');
             return;
         }
 
         $this->setTemplate(false);
-        header('Content-Type: application/zip');
-        header('Content-Disposition: attachment; filename="' . basename($filePath) . '"');
-        header('Content-Length: ' . filesize($filePath));
-        readfile($filePath);
+        $this->response->headers->set('Content-Type', 'application/octet-stream');
+        $this->response->headers->set('Content-Disposition', 'attachment; filename="' . FS_DB_NAME . '_' . $file_name . '"');
+        $this->response->headers->set('Content-Length', filesize($file_path));
+        $this->response->sendHeaders();
+        readfile($file_path);
+    }
 
-        unlink($filePath);
+    private function downloadZipAction(): void
+    {
+        if ($this->permissions->allowExport === false) {
+            Tools::log()->error('not-allowed-export');
+            return;
+        } elseif (false === $this->validateFormToken()) {
+            return;
+        }
+
+        $file_name = $this->request->request->get('file_name', '');
+        if (empty($file_name)) {
+            Tools::log()->warning('no-file-received');
+            return;
+        }
+
+        $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
+        if (false === file_exists($file_path)) {
+            Tools::log()->error('file-not-found');
+            return;
+        }
+
+        $this->setTemplate(false);
+        $this->response->headers->set('Content-Type', 'application/octet-stream');
+        $this->response->headers->set('Content-Disposition', 'attachment; filename="' . FS_DB_NAME . '_' . $file_name . '"');
+        $this->response->headers->set('Content-Length', filesize($file_path));
+        $this->response->sendHeaders();
+        readfile($file_path);
     }
 
     private function fixSqlFile(string $filePath): string
@@ -520,6 +608,14 @@ class Backup extends Controller
 
             $filePath = $file->getRealPath();
             $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', substr($filePath, strlen(FS_FOLDER) + 1));
+
+            // excluimos algunas carpetas
+            $exclude = ['MyFiles/Backups', 'MyFiles/Cache', 'MyFiles/Tmp', 'Dinamic'];
+            foreach ($exclude as $folder) {
+                if (strpos($relativePath, $folder) === 0) {
+                    continue 2;
+                }
+            }
 
             $zip->addFile($filePath, $relativePath);
         }

@@ -1,16 +1,18 @@
 {
-    "backup": "Copia de seguridad",
-    "backup-charset-error": "Kodowanie kopii zapasowej różni się od instalacji. Naciśnij przycisk zmiany kodowania przed przywróceniem.",
+    "backup": "Kopia zapasowa",
+    "backup-charset-error": "Kodowanie kopii zapasowej jest %db-charset%, podczas gdy w config.php jest %config-charset%. Naciśnij przycisk zmiany kodowania przed przywróceniem.",
     "backup-file-too-big": "Plik kopii zapasowej jest zbyt duży, aby przesłać go na serwer. Maksymalny rozmiar to %size% MB",
     "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad. Como alternativa puedes comprimir la carpeta de FacturaScripts, que es equivalente a una copia de los archivos.",
     "backup-port-warning": "Port MySQL powinien być 3306, ale używasz portu %port%",
-    "download-backup": "Descargar copia de seguridad",
-    "download-backup-p": "Descarga una copia de seguridad de tu base de datos y otra de tus archivos. Guarda estos ficheros en un lugar seguro. Si en algún momento quieres restaurar los datos de FacturaScripts, necesitarás estos ficheros.",
-    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
-    "restore-backup": "Restaurar copia de seguridad",
-    "restore-backup-p": "Si tienes los ficheros con tu base de datos y tus archivos, puedes restaurar los datos de FacturaScripts. Selecciona los dos ficheros y pulsa el botón restaurar.",
-    "restore-backup-warning": "Advertencia: restaurar los datos de FacturaScripts es como volver al pasado. Se eliminará todo lo que no estuviese en la copia de seguridad, es decir, las facturas que hayas realizado después y no estén en la copia, se perderán.",
+    "download-backup": "Pobierz kopię zapasową",
+    "download-backup-p": "Pobierz kopię zapasową swojej bazy danych oraz plików. Przechowuj te pliki w bezpiecznym miejscu. Jeśli w przyszłości będziesz chciał przywrócić dane z FacturaScripts, będziesz potrzebować tych plików.",
+    "file-ready-to-download": "Archivo listo para descargar",
+    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
+    "mysql-support-only": "Ten wtyczka działa tylko na MySQL",
+    "restore-backup": "Przywróć bazę danych",
+    "restore-backup-p": "Jeśli masz kopię zapasową swojej bazy danych, wybierz plik sql i kliknij przycisk przywróć.",
+    "restore-backup-warning": "Ostrzeżenie: przywrócenie danych z FacturaScripts jest jak powrót do przeszłości. Usunięte zostaną wszystkie dane, które nie były w kopii zapasowej, co oznacza, że faktury, które zostały wystawione później, a nie są w kopii, zostaną utracone.",
     "restore-files": "Przywróć pliki",
-    "restore-files-p": "Jeśli masz kopię zapasową plików, wybierz plik zip i naciśnij przycisk przywracania.",
-    "switch-db-charset": "Cambiar codificación"
+    "restore-files-p": "Jeśli masz kopię zapasową plików, wybierz ten plik zip i naciśnij przycisk przywróć.",
+    "switch-db-charset": "Zmień kodowanie bazy danych"
 }

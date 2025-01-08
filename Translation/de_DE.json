@@ -1,16 +1,18 @@
 {
     "backup": "Sicherheitskopie",
-    "backup-charset-error": "La codificación de la copia de seguridad es distinta a la de la instalación. Pulsa el botón cambiar codificación antes de restaurar.",
-    "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
+    "backup-charset-error": "Das Zeichensatz der Sicherungskopie ist %db-charset%, während es in der config.php %config-charset% ist. Klicken Sie auf die Schaltfläche Zeichensatz ändern, bevor Sie wiederherstellen.",
+    "backup-file-too-big": "Die Sicherungsdatei ist zu groß, um auf den Server hochgeladen zu werden. Die maximale Größe beträgt %size% MB.",
     "backup-memory-warning": "Warnung: Das Backup belegt %size% MB, aber Sie haben nur %memory% MB freien Speicherplatz. Nicht genügend Speicherplatz für das Backup vorhanden.",
-    "backup-port-warning": "Der MySQL-Port sollte 3306 sein, aber Sie verwenden den %port%",
+    "backup-port-warning": "Der MySQL-Port sollte 3306 sein, aber Sie verwenden den %port%.",
     "download-backup": "Sicherheitskopie runterladen",
     "download-backup-p": "Laden Sie eine Sicherungskopie Ihrer Datenbank und eine weitere Ihrer Dateien herunter. Bewahren Sie diese Dateien an einem sicheren Ort auf. Wenn Sie FacturaScripts-Daten zu irgendeinem Zeitpunkt wiederherstellen möchten, benötigen Sie diese Dateien.",
-    "mysql-support-only": "Este plugin solamente funciona sobre MySQL",
-    "restore-backup": "restore-backup",
-    "restore-backup-p": "restore-backup-p",
-    "restore-backup-warning": "restore-backup-warning",
-    "restore-files": "Restaurar archivos",
-    "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
-    "switch-db-charset": "Cambiar codificación"
+    "file-ready-to-download": "Archivo listo para descargar",
+    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
+    "mysql-support-only": "Dieses Plugin funktioniert nur mit MySQL",
+    "restore-backup": "Backup wiederherstellen",
+    "restore-backup-p": "Wiederherstellung des Backups",
+    "restore-backup-warning": "Warnung: Das Wiederherstellen der Daten von FacturaScripts ist wie eine Rückkehr in die Vergangenheit. Alles, was sich nicht in der Sicherungskopie befindet, wird gelöscht, das heißt, Rechnungen, die du nach der Sicherung erstellt hast und die sich nicht in der Sicherung befinden, gehen verloren.",
+    "restore-files": "Dateien wiederherstellen",
+    "restore-files-p": "Wenn Sie eine Sicherungskopie der Dateien haben, wählen Sie diese ZIP-Datei aus und klicken Sie auf die Schaltfläche Wiederherstellen.",
+    "switch-db-charset": "Datenbank-Zeichensatz ändern"
 }
