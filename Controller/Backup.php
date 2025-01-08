@@ -38,6 +38,9 @@ use ZipArchive;
  */
 class Backup extends Controller
 {
+    /** @var array */
+    public $backup_list = [];
+
     /** @var string */
     public $db_file_name = '';
 
@@ -108,6 +111,8 @@ class Backup extends Controller
                 $this->defaultChecks();
                 break;
         }
+
+        $this->loadBackupFiles();
     }
 
     private function checkDbBackupCharset(string $filePath): bool
@@ -371,6 +376,50 @@ class Backup extends Controller
 
             default:
                 return (int)$memoryLimit;
+        }
+    }
+
+    protected function loadBackupFiles(): void
+    {
+        // buscamos todos los archivos sql de la carpeta MyFiles/Backups
+        $folder = Tools::folder('MyFiles', 'Backups');
+        foreach (Tools::folderScan($folder) as $file) {
+            // comprobamos si es un archivo .sql
+            if (substr($file, -4) === '.sql') {
+                $key = substr($file, 0, strpos($file, '_'));
+                if (!isset($this->backup_list[$key])) {
+                    $this->backup_list[$key] = [
+                        'date' => $key,
+                        'sql_file' => $file,
+                        'sql_size' => filesize(Tools::folder('MyFiles', 'Backups', $file)),
+                        'zip_file' => '',
+                        'zip_size' => 0
+                    ];
+                    continue;
+                }
+
+                $this->backup_list[$key]['sql_file'] = $file;
+                $this->backup_list[$key]['sql_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+                continue;
+            }
+
+            // comprobamos si es un archivo .zip
+            if (substr($file, -4) === '.zip') {
+                $key = substr($file, 0, strpos($file, '_'));
+                if (!isset($this->backup_list[$key])) {
+                    $this->backup_list[$key] = [
+                        'date' => $key,
+                        'sql_file' => '',
+                        'sql_size' => 0,
+                        'zip_file' => $file,
+                        'zip_size' => filesize(Tools::folder('MyFiles', 'Backups', $file))
+                    ];
+                    continue;
+                }
+
+                $this->backup_list[$key]['zip_file'] = $file;
+                $this->backup_list[$key]['zip_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+            }
         }
     }
 
