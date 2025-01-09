@@ -7,7 +7,7 @@
     "download-backup": "Segurtasun kopia deskargatu",
     "download-backup-p": "Deskargatu zure datu-basearen eta fitxategiaren segurtasun kopia bat. Gorde fitxategi hauek leku seguru batean. Noizbait FacturaScripts-eko datuak berreskuratu nahi badituzu, fitxategi hau beharko duzu.",
     "file-ready-to-download": "Archivo listo para descargar",
-    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
+    "last-backup-more-30d": "Azken babeskopia 30 egunetik gorakoa da. Joan zaitez Administratzailea, Babeskopiak menura eta berria egin.",
     "mysql-support-only": "Plugin honek MySQL-en funtzionatzen du bakarrik",
     "restore-backup": "Berreskuratu babeskopiak",
     "restore-backup-p": "Badakizu zure datu-basea eta fitxategiak, bertan gordetu dauden informazioa berreskuratu ahal izatea. Aukeratu bi fitxeroak eta egin klik leheneratu botoian.",

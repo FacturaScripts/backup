@@ -201,6 +201,11 @@ class Backup extends Controller
             return;
         }
 
+        // si el tamaño es 0, mostramos un aviso
+        if (filesize($file_path) === 0) {
+            Tools::log()->warning('backup-empty-warning');
+        }
+
         $this->db_file_name = $file_name;
         Tools::log()->notice('file-ready-to-download');
     }
@@ -225,6 +230,11 @@ class Backup extends Controller
         if (false === $this->zipFolder($file_path)) {
             Tools::log()->error('record-save-error');
             return;
+        }
+
+        // si el tamaño es 0, mostramos un aviso
+        if (filesize($file_path) === 0) {
+            Tools::log()->warning('backup-empty-warning');
         }
 
         $this->zip_file_name = basename($file_path);
@@ -383,6 +393,11 @@ class Backup extends Controller
     {
         // buscamos todos los archivos sql de la carpeta MyFiles/Backups
         $folder = Tools::folder('MyFiles', 'Backups');
+        if (false === Tools::folderCheckOrCreate($folder)) {
+            Tools::log()->error('folder-create-error');
+            return;
+        }
+
         foreach (Tools::folderScan($folder) as $file) {
             // comprobamos si es un archivo .sql
             if (substr($file, -4) === '.sql') {

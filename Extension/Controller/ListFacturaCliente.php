@@ -40,6 +40,11 @@ class ListFacturaCliente
             if (empty($last_date)) {
                 // buscamos todos los archivos sql de la carpeta MyFiles/Backups
                 $folder = Tools::folder('MyFiles', 'Backups');
+                if (false === Tools::folderCheckOrCreate($folder)) {
+                    Tools::log()->warning('last-backup-more-30d');
+                    return;
+                }
+
                 foreach (Tools::folderScan($folder) as $file) {
                     if (substr($file, -4) !== '.sql') {
                         continue;

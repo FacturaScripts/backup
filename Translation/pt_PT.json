@@ -6,7 +6,7 @@
     "backup-port-warning": "A porta do MySQL deve ser a 3306, mas está a usar a %port%",
     "download-backup": "Baixar cópia de segurança",
     "download-backup-p": "Baixa a cópia de segurança da tua base de dados e outra dos teus ficheiros. Guarda estes ficheiros num lugar seguro. Se for preciso restaurar FacturaScripts, necessitarás deles.",
-    "file-ready-to-download": "Archivo listo para descargar",
+    "file-ready-to-download": "Arquivo pronto para download",
     "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
     "mysql-support-only": "E",
     "restore-backup": "R",
