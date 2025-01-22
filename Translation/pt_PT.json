@@ -7,7 +7,7 @@
     "download-backup": "Baixar cópia de segurança",
     "download-backup-p": "Baixa a cópia de segurança da tua base de dados e outra dos teus ficheiros. Guarda estes ficheiros num lugar seguro. Se for preciso restaurar FacturaScripts, necessitarás deles.",
     "file-ready-to-download": "Arquivo pronto para download",
-    "last-backup-more-30d": "La última copia de seguridad tiene más de 30 días. Haga una nueva desde el menú Administrador, Copias de seguridad.",
+    "last-backup-more-30d": "A última cópia de segurança tem mais de 30 dias. Faça uma nova a partir do menu Administrador, Cópias de segurança.",
     "mysql-support-only": "E",
     "restore-backup": "R",
     "restore-backup-p": "Se tens a cópia de segurança da tua base de dados, seleciona o arquivo sql e clica em restaurar",

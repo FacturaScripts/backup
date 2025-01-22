@@ -84,6 +84,7 @@
                                             <th>{{ trans('files') }}</th>
                                             <th class="text-right">{{ trans('size') }}</th>
                                             <th class="text-right">{{ trans('date') }}</th>
+                                            <th></th>
                                         </tr>
                                         </thead>
                                         <tbody>
@@ -96,7 +97,7 @@
                                                             {{ backup.sql_file }}
                                                         </a>
                                                     {% else %}
-                                                        {{ backup.sql_file }}
+                                                        -
                                                     {% endif %}
                                                 </td>
                                                 <td class="text-right">{{ bytes(backup.sql_size) }}</td>
@@ -107,15 +108,24 @@
                                                             {{ backup.zip_file }}
                                                         </a>
                                                     {% else %}
-                                                        {{ backup.zip_file }}
+                                                        -
                                                     {% endif %}
                                                 </td>
                                                 <td class="text-right">{{ bytes(backup.zip_size) }}</td>
                                                 <td class="text-right">{{ backup.date }}</td>
+                                                <td class="text-right">
+                                                    {% if backup.sql_file or backup.zip_file %}
+                                                        <a href="#"
+                                                           onclick="deleteBackupAction('{{ backup.sql_file }}','{{ backup.zip_file }}')"
+                                                           title="{{ trans('delete') }}">
+                                                            <i class="fa-solid fa-trash-alt text-danger"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </td>
                                             </tr>
                                         {% else %}
                                             <tr>
-                                                <td colspan="5" class="table-warning">
+                                                <td colspan="6" class="table-warning">
                                                     {{ trans('no-data') }}
                                                 </td>
                                             </tr>
@@ -208,6 +218,13 @@
             </div>
         </div>
     </div>
+
+    <form action="{{ fsc.url() }}" id="f_delete_backup" method="post">
+        {{ formToken() }}
+        <input type="hidden" name="action" value="delete-backup"/>
+        <input type="hidden" name="db_file">
+        <input type="hidden" name="zip_file">
+    </form>
 {% endblock %}
 
 {% block javascripts %}
@@ -219,6 +236,13 @@
             let form = $('#f_download');
             form.find('input[name="action"]').val(action);
             form.find('input[name="multireqtoken"]').val('{{ formToken(false) }}');
+            form.submit();
+        }
+
+        function deleteBackupAction(db_file, zip_file) {
+            let form = $('#f_delete_backup');
+            form.find('input[name="db_file"]').val(db_file);
+            form.find('input[name="zip_file"]').val(zip_file);
             form.submit();
         }
 

@@ -87,6 +87,10 @@ class Backup extends Controller
                 $this->createZipAction();
                 break;
 
+            case 'delete-backup':
+                $this->deleteBackupAction();
+                break;
+
             case 'download-sql-file':
                 $this->downloadSqlAction();
                 break;
@@ -271,6 +275,45 @@ class Backup extends Controller
                 '%memory%' => $memoryMb
             ]);
         }
+    }
+
+    private function deleteBackupAction(): void
+    {
+        if ($this->permissions->allowDelete === false) {
+            Tools::log()->error('not-allowed-delete');
+            return;
+        } elseif (false === $this->validateFormToken()) {
+            return;
+        }
+
+        $db_file = $this->request->request->get('db_file', '');
+        $zip_file = $this->request->request->get('zip_file', '');
+        if (empty($db_file) && empty($zip_file)) {
+            Tools::log()->warning('no-file-received');
+            return;
+        }
+
+        if ($db_file) {
+            $db_file_path = Tools::folder('MyFiles', 'Backups', $db_file);
+            if (false === file_exists($db_file_path)) {
+                Tools::log()->error('file-not-found');
+                return;
+            }
+
+            unlink($db_file_path);
+        }
+
+        if ($zip_file) {
+            $zip_file_path = Tools::folder('MyFiles', 'Backups', $zip_file);
+            if (false === file_exists($zip_file_path)) {
+                Tools::log()->error('file-not-found');
+                return;
+            }
+
+            unlink($zip_file_path);
+        }
+
+        Tools::log()->notice('record-deleted-correctly');
     }
 
     private function downloadSqlAction(): void
