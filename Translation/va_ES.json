@@ -4,6 +4,7 @@
     "backup-file-too-big": "L'arxiu de còpia de seguretat és massa gran per pujar-lo al servidor. La mida màxima és %size% MB",
     "backup-memory-warning": "Advertència: la còpia de seguretat ocupa %size% MB, però solament tens %memory% MB de memòria disponible. Insuficient per a realitzar la còpia de seguretat.",
     "backup-port-warning": "El port de MySQL ha de ser el 3306, però estàs utilitzant el %port%",
+    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
     "download-backup": "download-backup",
     "download-backup-p": "download-backup-p",
     "file-ready-to-download": "Arxiu llest per descarregar",

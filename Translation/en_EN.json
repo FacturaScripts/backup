@@ -4,6 +4,7 @@
     "backup-file-too-big": "The backup file is too large to upload to the server. The maximum size is %size% MB",
     "backup-memory-warning": "Warning: the backup takes %size% MB, but you only have %memory% MB of memory available. Insufficient to perform the backup.",
     "backup-port-warning": "The MySQL port should be 3306, but you are using %port%",
+    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
     "download-backup": "Download backup",
     "download-backup-p": "Download a backup copy of your database and another of your files. Keep these files in a safe place. If at any time you want to restore FacturaScripts data, you will need these files.",
     "file-ready-to-download": "File ready for download",

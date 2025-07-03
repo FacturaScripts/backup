@@ -638,8 +638,15 @@ class Backup extends Controller
         // leemos el archivo config.php
         $configFile = file_get_contents(Tools::folder('config.php'));
 
-        $configCharset = Tools::config('mysql_charset', 'utf8');
-        $configCollate = Tools::config('mysql_collate', 'utf8_bin');
+        $configCharset = Tools::config('mysql_charset');
+        $configCollate = Tools::config('mysql_collate');
+        if (empty($configCharset) || empty($configCollate)) {
+            Tools::log()->error('config-mysql-charset-error', [
+                '%config-charset%' => $configCharset,
+                '%config-collate%' => $configCollate
+            ]);
+            return;
+        }
 
         $selectedCharset = $this->request->query->get('charset');
         switch ($selectedCharset) {

@@ -4,6 +4,7 @@
     "backup-file-too-big": "Le fichier de sauvegarde est trop volumineux pour être téléchargé sur le serveur. La taille maximale est de %size% MB",
     "backup-memory-warning": "Avertissement : la sauvegarde occupe %size% Mo, mais vous disposez uniquement de %memory% Mo de mémoire disponible. Insuffisant pour effectuer la sauvegarde.",
     "backup-port-warning": "Le port MySQL devrait être 3306, mais vous utilisez %port%.",
+    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
     "download-backup": "Télécharger la copie de sauvegarde",
     "download-backup-p": "Téléchargez une copie de sauvegarde de votre base de données et de vos fichiers. Gardez-les dans un endroit sûr. Si vous désirez restaurer vos données FacturaScripts à l'avenir, vous en aurez besoin.",
     "file-ready-to-download": "Fichier prêt à être téléchargé",
