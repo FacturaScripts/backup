@@ -1,10 +1,10 @@
 {
     "backup": "Copia de seguridade",
-    "backup-charset-error": "A codificación da copia de seguridade é distinta á da instalación. Preme o botón cambiar codificación antes de restaurar.",
+    "backup-charset-error": "A codificación da copia de seguridade é %db-charset%, mentres que no config.php é %config-charset%. Preme o botón cambiar codificación antes de restaurar.",
     "backup-file-too-big": "O arquivo de copia de seguridade é demasiado grande para subilo ao servidor. O tamaño máximo é %size% MB",
     "backup-memory-warning": "Advertencia: a copia de seguridade ocupa %size% MB, pero só ten %memory% MB de memoria dispoñible. Insuficiente para realizar a copia de seguridade.",
     "backup-port-warning": "O porto de MySQL debe ser o 3306, pero estás usando o %port%",
-    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
+    "config-mysql-charset-error": "Faltan as constantes de codificación no arquivo config.php ('%config-charset%', '%config-collate%')",
     "download-backup": "Baixar cópia de segurança",
     "download-backup-p": "Descarga unha copia de seguridade da túa base de datos e outra dos teus arquivos. Garda estes ficheiros nun lugar seguro. Se nalgún momento queres restaurar os datos de  FacturaScripts, necesitarás estes ficheiros.",
     "file-ready-to-download": "Arquivo listo para descargar",

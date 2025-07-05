@@ -1,10 +1,10 @@
 {
     "backup": "Segurtasun kopia",
-    "backup-charset-error": "Segurtasunaren enkriptazioa %db-charset% da, baina config.phpk %config-charset% da. Berreskuratzeko aurretik kodeketa aldatu botoia sakatu.",
+    "backup-charset-error": "Segurtasunaren enkodeketa %db-charset% da, baina config.phpk %config-charset% da. Berreskuratzeko aurretik kodeketa aldatu botoia sakatu.",
     "backup-file-too-big": "Segurtasun kopiaren fitxategia handiegia da zerbitzarian igotzeko. Muga-egoera %size% MB da",
     "backup-memory-warning": "Abisua: babes-kopia %size% MB hartzen du, baina %memory% MB soilik baditu memoria eskuragarri. Eremuan kopia ezinezkoa da.",
     "backup-port-warning": "MySQLren ataria 3306 izan behar da, baina %port% erabiltzen ari zara.",
-    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
+    "config-mysql-charset-error": "Faltan kodea zehazteko konstanteak config.php fitxean ('%config-charset%', '%config-collate%')",
     "download-backup": "Segurtasun kopia deskargatu",
     "download-backup-p": "Deskargatu zure datu-basearen eta fitxategiaren segurtasun kopia bat. Gorde fitxategi hauek leku seguru batean. Noizbait FacturaScripts-eko datuak berreskuratu nahi badituzu, fitxategi hau beharko duzu.",
     "file-ready-to-download": "Fitxategia deskargatzeko prest",
