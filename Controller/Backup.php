@@ -637,6 +637,10 @@ class Backup extends Controller
 
         // leemos el archivo config.php
         $configFile = file_get_contents(Tools::folder('config.php'));
+        if (empty($configFile)) {
+            Tools::log()->error('config-file-error');
+            return;
+        }
 
         $configCharset = Tools::config('mysql_charset');
         $configCollate = Tools::config('mysql_collate');
@@ -661,6 +665,11 @@ class Backup extends Controller
                 break;
 
             default:
+                Tools::log()->error('config-mysql-charset-error', [
+                    '%config-charset%' => $configCharset,
+                    '%config-collate%' => $configCollate,
+                    '%selected-charset%' => $selectedCharset
+                ]);
                 return;
         }
 
