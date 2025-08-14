@@ -7,13 +7,13 @@
                 <div class="col">
                     <ul class="nav nav-pills mb-3" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="download-tab" data-toggle="tab" data-target="#download"
+                            <button class="nav-link active" id="download-tab" data-bs-toggle="tab" data-bs-target="#download"
                                     type="button" role="tab" aria-controls="download" aria-selected="true">
                                 {{ trans('download') }}
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="restore-tab" data-toggle="tab" data-target="#restore"
+                            <button class="nav-link" id="restore-tab" data-bs-toggle="tab" data-bs-target="#restore"
                                     type="button" role="tab" aria-controls="restore" aria-selected="false">
                                 {{ trans('restore') }}
                             </button>
@@ -40,31 +40,31 @@
                             <div class="card shadow mb-4">
                                 <div class="card-body">
                                     <h2 class="h3">
-                                        <i class="fa-solid fa-download text-primary mr-2"></i> {{ trans('download-backup') }}
+                                        <i class="fa-solid fa-download text-primary me-2"></i> {{ trans('download-backup') }}
                                     </h2>
                                     <p class="card-text">{{ trans('download-backup-p') }}</p>
                                 </div>
                                 <div class="card-footer p-2">
                                     {% if fsc.db_file_name %}
-                                        <button type="button" class="btn btn-success btn-spin-action mr-2"
+                                        <button type="button" class="btn btn-success btn-spin-action me-2"
                                                 onclick="downloadBackupAction('download-sql-file','{{ fsc.db_file_name }}')">
-                                            <i class="fa-solid fa-download mr-2"></i> {{ trans('download') }}
+                                            <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
                                         </button>
                                     {% else %}
-                                        <button type="button" class="btn btn-secondary btn-spin-action mr-2"
+                                        <button type="button" class="btn btn-secondary btn-spin-action me-2"
                                                 onclick="createBackupAction('create-sql-file')">
-                                            <i class="fa-solid fa-database mr-2"></i> {{ trans('database') }}
+                                            <i class="fa-solid fa-database me-2"></i> {{ trans('database') }}
                                         </button>
                                     {% endif %}
                                     {% if fsc.zip_file_name %}
                                         <button type="button" class="btn btn-success btn-spin-action"
                                                 onclick="downloadBackupAction('download-zip-file','{{ fsc.zip_file_name }}')">
-                                            <i class="fa-solid fa-download mr-2"></i> {{ trans('download') }}
+                                            <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
                                         </button>
                                     {% else %}
                                         <button type="submit" class="btn btn-secondary btn-spin-action"
                                                 onclick="createBackupAction('create-zip-file')">
-                                            <i class="fa-solid fa-box-archive mr-2"></i> {{ trans('files') }}
+                                            <i class="fa-solid fa-box-archive me-2"></i> {{ trans('files') }}
                                         </button>
                                     {% endif %}
                                 </div>
@@ -72,7 +72,7 @@
                             <div class="card shadow mb-5">
                                 <div class="card-body">
                                     <h3 class="h4 mb-0">
-                                        <i class="fa-solid fa-calendar-days mr-2"></i> {{ trans('history') }}
+                                        <i class="fa-solid fa-calendar-days me-2"></i> {{ trans('history') }}
                                     </h3>
                                 </div>
                                 <div class="table-responsive">
@@ -80,10 +80,10 @@
                                         <thead>
                                         <tr>
                                             <th>{{ trans('database') }}</th>
-                                            <th class="text-right">{{ trans('size') }}</th>
+                                            <th class="text-end">{{ trans('size') }}</th>
                                             <th>{{ trans('files') }}</th>
-                                            <th class="text-right">{{ trans('size') }}</th>
-                                            <th class="text-right">{{ trans('date') }}</th>
+                                            <th class="text-end">{{ trans('size') }}</th>
+                                            <th class="text-end">{{ trans('date') }}</th>
                                             <th></th>
                                         </tr>
                                         </thead>
@@ -100,7 +100,7 @@
                                                         -
                                                     {% endif %}
                                                 </td>
-                                                <td class="text-right">{{ bytes(backup.sql_size) }}</td>
+                                                <td class="text-end">{{ bytes(backup.sql_size) }}</td>
                                                 <td>
                                                     {% if backup.zip_file %}
                                                         <a href="#"
@@ -111,9 +111,9 @@
                                                         -
                                                     {% endif %}
                                                 </td>
-                                                <td class="text-right">{{ bytes(backup.zip_size) }}</td>
-                                                <td class="text-right">{{ backup.date }}</td>
-                                                <td class="text-right">
+                                                <td class="text-end">{{ bytes(backup.zip_size) }}</td>
+                                                <td class="text-end">{{ backup.date }}</td>
+                                                <td class="text-end">
                                                     {% if backup.sql_file or backup.zip_file %}
                                                         <a href="#"
                                                            onclick="deleteBackupAction('{{ backup.sql_file }}','{{ backup.zip_file }}')"
@@ -143,7 +143,7 @@
                             <div class="card shadow mb-4">
                                 <div class="card-body bg-warning">
                                     <h3 class="h5 mb-0">
-                                        <i class="fa-solid fa-database mr-2"></i> {{ trans('restore-backup') }}
+                                        <i class="fa-solid fa-database me-2"></i> {{ trans('restore-backup') }}
                                     </h3>
                                 </div>
                                 <div class="card-body">
@@ -151,7 +151,7 @@
                                         {{ trans('restore-backup-p') }}
                                         <span class="text-danger">{{ trans('restore-backup-warning') }}</span>
                                     </p>
-                                    <div class="form-group">
+                                    <div class="mb-3">
                                         {{ trans('database') }}
                                         <input type="file" name="db_file" accept=".sql,.sql.gz"
                                                class="form-control-file" required/>
@@ -164,10 +164,10 @@
                                     <button type="submit" class="btn btn-warning btn-spin-action">
                                         {{ trans('restore') }}
                                     </button>
-                                    <div class="btn-group ml-2">
+                                    <div class="btn-group ms-2">
                                         <div class="dropdown">
                                             <button class="btn btn-secondary dropdown-toggle btn-spin-action"
-                                                    type="button" data-toggle="dropdown" aria-expanded="false">
+                                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                 {{ trans('switch-db-charset') }}
                                             </button>
                                             <div class="dropdown-menu">
@@ -192,12 +192,12 @@
                             <div class="card shadow mb-4">
                                 <div class="card-body text-white bg-secondary">
                                     <h3 class="h5 mb-0">
-                                        <i class="fa-solid fa-upload mr-2"></i> {{ trans('restore-files') }}
+                                        <i class="fa-solid fa-upload me-2"></i> {{ trans('restore-files') }}
                                     </h3>
                                 </div>
                                 <div class="card-body">
                                     <p>{{ trans('restore-files-p') }}</p>
-                                    <div class="form-group">
+                                    <div class="mb-3">
                                         {{ trans('files') }}
                                         <input type="file" name="zip_file" accept=".zip" class="form-control-file"
                                                required/>

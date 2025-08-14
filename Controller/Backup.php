@@ -27,8 +27,8 @@ use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\User;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\Response;
+use FacturaScripts\Core\UploadedFile;
+use FacturaScripts\Core\Response;
 use ZipArchive;
 
 /**
@@ -341,8 +341,7 @@ class Backup extends Controller
         $this->response->headers->set('Content-Type', 'application/octet-stream');
         $this->response->headers->set('Content-Disposition', 'attachment; filename="' . FS_DB_NAME . '_' . $file_name . '"');
         $this->response->headers->set('Content-Length', filesize($file_path));
-        $this->response->sendHeaders();
-        readfile($file_path);
+        $this->response->file($file_path);
     }
 
     private function downloadZipAction(): void
@@ -370,8 +369,7 @@ class Backup extends Controller
         $this->response->headers->set('Content-Type', 'application/octet-stream');
         $this->response->headers->set('Content-Disposition', 'attachment; filename="' . FS_DB_NAME . '_' . $file_name . '"');
         $this->response->headers->set('Content-Length', filesize($file_path));
-        $this->response->sendHeaders();
-        readfile($file_path);
+        $this->response->file($file_path);
     }
 
     private function fixSqlFile(string $filePath): string
