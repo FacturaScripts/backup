@@ -1,10 +1,10 @@
 {
     "backup": "Kopia zapasowa",
-    "backup-charset-error": "Kodowanie kopii zapasowej jest %db-charset%, podczas gdy w config.php jest %config-charset%. Naciśnij przycisk zmiany kodowania przed przywróceniem.",
-    "backup-file-too-big": "Plik kopii zapasowej jest zbyt duży, aby przesłać go na serwer. Maksymalny rozmiar to %size% MB",
+    "backup-charset-error": "Kodowanie kopii zapasowej to %db-charset%, podczas gdy w config.php jest %config-charset%. Naciśnij przycisk zmień kodowanie przed przywróceniem.",
+    "backup-file-too-big": "Plik kopii zapasowej jest zbyt duży, aby go przesłać na serwer. Maksymalny rozmiar to %size% MB",
     "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad. Como alternativa puedes comprimir la carpeta de FacturaScripts, que es equivalente a una copia de los archivos.",
     "backup-port-warning": "Port MySQL powinien być 3306, ale używasz portu %port%",
-    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
+    "config-mysql-charset-error": "Brak stałych kodowania w pliku config.php ('%config-charset%', '%config-collate%')",
     "download-backup": "Pobierz kopię zapasową",
     "download-backup-p": "Pobierz kopię zapasową swojej bazy danych oraz plików. Przechowuj te pliki w bezpiecznym miejscu. Jeśli w przyszłości będziesz chciał przywrócić dane z FacturaScripts, będziesz potrzebować tych plików.",
     "file-ready-to-download": "Plik gotowy do pobrania",

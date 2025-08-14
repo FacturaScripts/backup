@@ -57,9 +57,9 @@ class Cron extends CronClass
     protected function createSqlFile(): bool
     {
         // si el puerto no es el puerto por defecto, mostramos un aviso
-        if (FS_DB_PORT != 3306) {
+        if (Tools::config('db_port') != 3306) {
             Tools::log(self::JOB_NAME)->warning('backup-port-warning', [
-                '%port%' => FS_DB_PORT
+                '%port%' => Tools::config('db_port')
             ]);
             return false;
         }
@@ -76,8 +76,12 @@ class Cron extends CronClass
         }
 
         $file_name = date('Y-m-d_H-i-s') . '.sql';
-        SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
-            ->storeAfterExportTo($folder, $file_name);
+        SimpleBackup::setDatabase([
+            Tools::config('db_name'),
+            Tools::config('db_user'),
+            Tools::config('db_pass'),
+            Tools::config('db_host')
+        ])->storeAfterExportTo($folder, $file_name);
 
         $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
         if (false === file_exists($file_path)) {

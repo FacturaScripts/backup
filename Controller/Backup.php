@@ -167,7 +167,7 @@ class Backup extends Controller
 
     protected function createSqlAction(): void
     {
-        if (FS_DB_TYPE != 'mysql') {
+        if (Tools::config('db_type') != 'mysql') {
             Tools::log()->error('mysql-support-only');
             return;
         } elseif ($this->permissions->allowExport === false) {
@@ -178,9 +178,9 @@ class Backup extends Controller
         }
 
         // si el puerto no es el puerto por defecto, mostramos un aviso
-        if (FS_DB_PORT != 3306) {
+        if (Tools::config('db_port') != 3306) {
             Tools::log()->warning('backup-port-warning', [
-                '%port%' => FS_DB_PORT
+                '%port%' => Tools::config('db_port')
             ]);
         }
 
@@ -196,8 +196,12 @@ class Backup extends Controller
         }
 
         $file_name = date('Y-m-d_H-i-s') . '.sql';
-        SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])
-            ->storeAfterExportTo($folder, $file_name);
+        SimpleBackup::setDatabase([
+            Tools::config('db_name'),
+            Tools::config('db_user'),
+            Tools::config('db_pass'),
+            Tools::config('db_host')
+        ])->storeAfterExportTo($folder, $file_name);
 
         $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
         if (false === file_exists($file_path)) {
@@ -338,10 +342,7 @@ class Backup extends Controller
         }
 
         $this->setTemplate(false);
-        $this->response->headers->set('Content-Type', 'application/octet-stream');
-        $this->response->headers->set('Content-Disposition', 'attachment; filename="' . FS_DB_NAME . '_' . $file_name . '"');
-        $this->response->headers->set('Content-Length', filesize($file_path));
-        $this->response->file($file_path);
+        $this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
     }
 
     private function downloadZipAction(): void
@@ -366,10 +367,7 @@ class Backup extends Controller
         }
 
         $this->setTemplate(false);
-        $this->response->headers->set('Content-Type', 'application/octet-stream');
-        $this->response->headers->set('Content-Disposition', 'attachment; filename="' . FS_DB_NAME . '_' . $file_name . '"');
-        $this->response->headers->set('Content-Length', filesize($file_path));
-        $this->response->file($file_path);
+        $this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
     }
 
     private function fixSqlFile(string $filePath): string
@@ -565,7 +563,12 @@ class Backup extends Controller
         $this->dataBase->close();
 
         // importamos el backup
-        $backup = SimpleBackup::setDatabase([FS_DB_NAME, FS_DB_USER, FS_DB_PASS, FS_DB_HOST])->importFrom($sqlFile);
+        $backup = SimpleBackup::setDatabase([
+            Tools::config('db_name'),
+            Tools::config('db_user'),
+            Tools::config('db_pass'),
+            Tools::config('db_host')
+        ])->importFrom($sqlFile);
         if (false === $backup->getResponse()->status) {
             Tools::log()->error('record-save-error');
             $this->dataBase->connect();

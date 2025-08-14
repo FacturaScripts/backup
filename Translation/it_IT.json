@@ -1,10 +1,10 @@
 {
     "backup": "copia di sicurezza",
-    "backup-charset-error": "La codifica del backup è %db-charset%, mentre in config.php è %config-charset%. Premere il pulsante cambia codifica prima di ripristinare.",
+    "backup-charset-error": "La codifica del backup è %db-charset%, mentre in config.php è %config-charset%. Premere il pulsante per cambiare codifica prima di ripristinare.",
     "backup-file-too-big": "Il file di backup è troppo grande per essere caricato sul server. La dimensione massima è %size% MB",
     "backup-memory-warning": "Avviso memoria: il backup occupa %size% MB, ma hai solo %memory% MB di memoria disponibile. Non sufficiente per eseguire il backup.",
     "backup-port-warning": "La porta di MySQL deve essere 3306, ma stai utilizzando la %port%",
-    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
+    "config-mysql-charset-error": "Mancano le costanti di codifica nel file config.php ('%config-charset%', '%config-collate%')",
     "download-backup": "scarica-il-backup",
     "download-backup-p": "scarica-backup-p",
     "file-ready-to-download": "File pronto per il download",

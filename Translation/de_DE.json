@@ -1,10 +1,10 @@
 {
     "backup": "Sicherheitskopie",
-    "backup-charset-error": "Das Zeichensatz der Sicherungskopie ist %db-charset%, während es in der config.php %config-charset% ist. Klicken Sie auf die Schaltfläche Zeichensatz ändern, bevor Sie wiederherstellen.",
+    "backup-charset-error": "Der Zeichensatz der Sicherungskopie ist %db-charset%, während es in der config.php %config-charset% ist. Klicken Sie auf die Schaltfläche 'Zeichensatz ändern', bevor Sie wiederherstellen.",
     "backup-file-too-big": "Die Sicherungsdatei ist zu groß, um auf den Server hochgeladen zu werden. Die maximale Größe beträgt %size% MB.",
     "backup-memory-warning": "Warnung: Das Backup belegt %size% MB, aber Sie haben nur %memory% MB freien Speicherplatz. Nicht genügend Speicherplatz für das Backup vorhanden.",
     "backup-port-warning": "Der MySQL-Port sollte 3306 sein, aber Sie verwenden den %port%.",
-    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
+    "config-mysql-charset-error": "Die Kodierungskonstanten in der Datei config.php ('%config-charset%', '%config-collate%') fehlen.",
     "download-backup": "Sicherheitskopie runterladen",
     "download-backup-p": "Laden Sie eine Sicherungskopie Ihrer Datenbank und eine weitere Ihrer Dateien herunter. Bewahren Sie diese Dateien an einem sicheren Ort auf. Wenn Sie FacturaScripts-Daten zu irgendeinem Zeitpunkt wiederherstellen möchten, benötigen Sie diese Dateien.",
     "file-ready-to-download": "Datei zum Download bereit",
