@@ -7,15 +7,17 @@
                 <div class="col">
                     <ul class="nav nav-pills mb-3" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="download-tab" data-bs-toggle="tab" data-bs-target="#download"
+                            {% set btnClass = fsc.active_tab == 'download' ? 'nav-link active' : 'nav-link' %}
+                            <button class="{{ btnClass }}" id="download-tab" data-bs-toggle="tab" data-bs-target="#download"
                                     type="button" role="tab" aria-controls="download" aria-selected="true">
-                                {{ trans('download') }}
+                                <i class="fa-solid fa-download me-1"></i> {{ trans('download') }}
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="restore-tab" data-bs-toggle="tab" data-bs-target="#restore"
+                            {% set btnClass = fsc.active_tab == 'restore' ? 'nav-link active' : 'nav-link' %}
+                            <button class="{{ btnClass }}" id="restore-tab" data-bs-toggle="tab" data-bs-target="#restore"
                                     type="button" role="tab" aria-controls="restore" aria-selected="false">
-                                {{ trans('restore') }}
+                                <i class="fa-solid fa-upload me-1"></i> {{ trans('restore') }}
                             </button>
                         </li>
                     </ul>
@@ -31,8 +33,9 @@
     <div class="container" style="margin-top: -65px;">
         <div class="row">
             <div class="col">
-                <div class="tab-content" id="myTabContent">
-                    <div class="tab-pane fade show active" id="download" role="tabpanel" aria-labelledby="download-tab">
+                <div class="tab-content">
+                    {% set tabClass = fsc.active_tab == 'download' ? 'tab-pane fade show active' : 'tab-pane fade' %}
+                    <div class="{{ tabClass }}" id="download" role="tabpanel" aria-labelledby="download-tab">
                         <form action="{{ fsc.url() }}" id="f_download" method="post">
                             {{ formToken() }}
                             <input type="hidden" name="action">
@@ -40,7 +43,7 @@
                             <div class="card shadow mb-4">
                                 <div class="card-body">
                                     <h2 class="h3">
-                                        <i class="fa-solid fa-download text-primary me-2"></i> {{ trans('download-backup') }}
+                                        <i class="fa-solid fa-file-arrow-down me-2"></i> {{ trans('download-backup') }}
                                     </h2>
                                     <p class="card-text">{{ trans('download-backup-p') }}</p>
                                 </div>
@@ -136,10 +139,12 @@
                             </div>
                         </form>
                     </div>
-                    <div class="tab-pane fade" id="restore" role="tabpanel" aria-labelledby="restore-tab">
+                    {% set tabClass = fsc.active_tab == 'restore' ? 'tab-pane fade show active' : 'tab-pane fade' %}
+                    <div class="{{ tabClass }}" id="restore" role="tabpanel" aria-labelledby="restore-tab">
                         <form action="{{ fsc.url() }}" id="f_restore_db" method="post" enctype="multipart/form-data">
                             {{ formToken() }}
                             <input type="hidden" name="action" value="restore-backup"/>
+                            <input type="hidden" name="active_tab" value="restore"/>
                             <div class="card shadow mb-4">
                                 <div class="card-body bg-warning">
                                     <h3 class="h5 mb-0">
@@ -172,11 +177,11 @@
                                             </button>
                                             <div class="dropdown-menu">
                                                 <a class="dropdown-item"
-                                                   href="?action=switch-db-charset&charset=utf8&multireqtoken={{ formToken(false) }}">
+                                                   href="?action=switch-db-charset&charset=utf8&multireqtoken={{ formToken(false) }}&active_tab=restore">
                                                     utf8
                                                 </a>
                                                 <a class="dropdown-item"
-                                                   href="?action=switch-db-charset&charset=utf8mb4&multireqtoken={{ formToken(false) }}">
+                                                   href="?action=switch-db-charset&charset=utf8mb4&multireqtoken={{ formToken(false) }}&active_tab=restore">
                                                     utf8mb4
                                                 </a>
                                             </div>
@@ -189,6 +194,7 @@
                         <form action="{{ fsc.url() }}" id="f_restore_files" method="post" enctype="multipart/form-data">
                             {{ formToken() }}
                             <input type="hidden" name="action" value="restore-files"/>
+                            <input type="hidden" name="active_tab" value="restore"/>
                             <div class="card shadow mb-4">
                                 <div class="card-body text-white bg-secondary">
                                     <h3 class="h5 mb-0">

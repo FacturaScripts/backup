@@ -23,12 +23,12 @@ use Coderatio\SimpleBackup\SimpleBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Cache;
+use FacturaScripts\Core\Response;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\UploadedFile;
 use FacturaScripts\Dinamic\Model\User;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use FacturaScripts\Core\UploadedFile;
-use FacturaScripts\Core\Response;
 use ZipArchive;
 
 /**
@@ -38,6 +38,9 @@ use ZipArchive;
  */
 class Backup extends Controller
 {
+    /** @var string */
+    public $active_tab = 'download';
+
     /** @var array */
     public $backup_list = [];
 
@@ -76,6 +79,8 @@ class Backup extends Controller
     public function privateCore(&$response, $user, $permissions)
     {
         parent::privateCore($response, $user, $permissions);
+
+        $this->active_tab = $this->request->get('active_tab', 'download');
 
         $action = $this->request->get('action', '');
         switch ($action) {
