@@ -19,6 +19,7 @@
 
 namespace FacturaScripts\Plugins\Backup;
 
+use FacturaScripts\Dinamic\Lib\AssetManager;
 use FacturaScripts\Core\Template\InitClass;
 
 /**
@@ -31,6 +32,7 @@ class Init extends InitClass
     public function init(): void
     {
         $this->loadExtension(new Extension\Controller\ListFacturaCliente());
+        AssetManager::addJs(FS_ROUTE . 'plugins/Backup/Assets/JS/EditSettings.js');
     }
 
     public function uninstall(): void

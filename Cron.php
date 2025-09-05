@@ -32,11 +32,51 @@ class Cron extends CronClass
 
     public function run(): void
     {
-        $this->job(self::JOB_NAME)
-            ->every('1 week')
-            ->run(function () {
-                $this->createBackup();
-            });
+        $frequency = Tools::settings('default', 'backup_frequency');
+        $dayOfWeek = Tools::settings('default', 'weekly_backup_day', 1);
+        $dayOfMonth = Tools::settings('default', 'monthly_backup_day', 1);
+
+        $job = $this->job(self::JOB_NAME);
+
+        if ($frequency === '1 month') {
+            $job->everyDay($dayOfMonth, 7);
+        } elseif ($frequency === '1 week') {
+            switch ($dayOfWeek) {
+                case 1:
+                    $job->everyMondayAt(7);
+                    break;
+                case 2:
+                    $job->everyTuesdayAt(7);
+                    break;
+                case 3:
+                    $job->everyWednesdayAt(7);
+                    break;
+                case 4:
+                    $job->everyThursdayAt(7);
+                    break;
+                case 5:
+                    $job->everyFridayAt(7);
+                    break;
+                case 6:
+                    $job->everySaturdayAt(7);
+                    break;
+                case 7:
+                    $job->everySundayAt(7);
+                    break;
+                default:
+                    $job->everyMondayAt(7);
+            }
+        } elseif ($frequency === '1 day') {
+            $job->every('1 day');
+        }
+        else{
+            // selección no válida
+            return;
+        }
+
+        $job->run(function () {
+            $this->createBackup();
+        });
     }
 
     protected function createBackup(): void
