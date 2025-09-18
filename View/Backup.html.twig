@@ -103,7 +103,11 @@
                                                         -
                                                     {% endif %}
                                                 </td>
-                                                <td class="text-end">{{ bytes(backup.sql_size) }}</td>
+                                                    {% if bytes(backup.sql_size) != "0,00 bytes" and bytes(backup.sql_size) != "0.00 bytes"%}
+                                                        <td class="text-end">{{ bytes(backup.sql_size) }}</td>
+                                                    {% else %}
+                                                        <td class="text-end">-</td>
+                                                    {% endif %}
                                                 <td>
                                                     {% if backup.zip_file %}
                                                         <a href="#"
@@ -114,9 +118,13 @@
                                                         -
                                                     {% endif %}
                                                 </td>
-                                                <td class="text-end">{{ bytes(backup.zip_size) }}</td>
-                                                <td class="text-end">{{ backup.date }}</td>
-                                                <td class="text-end">
+                                                    {% if bytes(backup.zip_size) != "0,00 bytes" and bytes(backup.zip_size) != "0.00 bytes" %}
+                                                        <td class="text-end">{{ bytes(backup.zip_size) }}</td>
+                                                    {% else %}
+                                                        <td class="text-end">-</td>
+                                                    {% endif %}
+                                                    <td class="text-end">{{ backup.date }}</td>
+                                                    <td class="text-end">
                                                     {% if backup.sql_file or backup.zip_file %}
                                                         <a href="#"
                                                            onclick="deleteBackupAction('{{ backup.sql_file }}','{{ backup.zip_file }}')"
