@@ -41,6 +41,9 @@ class Backup extends Controller
     /** @var string */
     public $active_tab = 'download';
 
+    /** @var string */
+    public $download_tab = 'general';
+
     /** @var array */
     public $backup_list = [];
 
@@ -49,6 +52,9 @@ class Backup extends Controller
 
     /** @var string */
     public $zip_file_name = '';
+
+    /** @var string */
+    public $db_charset = 'utf8';
 
     /**
      * Return the max file size that can be uploaded.
@@ -80,7 +86,11 @@ class Backup extends Controller
     {
         parent::privateCore($response, $user, $permissions);
 
+        // track charset for the download tab selector
+        $this->db_charset = Tools::config('mysql_charset', 'utf8');
+
         $this->active_tab = $this->request->get('active_tab', 'download');
+        $this->download_tab = $this->request->get('download_tab', 'general');
 
         $action = $this->request->get('action', '');
         switch ($action) {
@@ -684,6 +694,10 @@ class Backup extends Controller
             Tools::log()->error('record-save-error');
             return;
         }
+
+        $this->db_charset = $selectedCharset;
+        $this->active_tab = 'download';
+        $this->download_tab = 'advanced';
 
         Tools::log()->notice('record-updated-correctly');
     }

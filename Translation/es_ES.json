@@ -1,6 +1,6 @@
 {
     "backup": "Copia de seguridad",
-    "backup-charset-error": "La codificación de la copia de seguridad es %db-charset%, mientras que en el config.php es %config-charset%. Pulsa el botón cambiar codificación antes de restaurar.",
+    "backup-charset-error": "La codificación de la copia de seguridad es %db-charset%, mientras que en el config.php es %config-charset%. Ajusta la codificación antes de restaurar.",
     "backup-file-too-big": "El archivo de copia de seguridad es demasiado grande para subirlo al servidor. El tamaño máximo es %size% MB",
     "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria RAM disponible. Insuficiente para realizar la copia de seguridad. Como alternativa puedes comprimir la carpeta de FacturaScripts, que es equivalente a una copia de los archivos.",
     "backup-port-warning": "El puerto de MySQL debe ser el 3306, pero estás usando el %port%",
@@ -15,5 +15,7 @@
     "restore-backup-warning": "Advertencia: restaurar los datos de FacturaScripts es como volver al pasado. Se eliminará todo lo que no estuviese en la copia de seguridad, es decir, las facturas que hayas realizado después y no estén en la copia, se perderán.",
     "restore-files": "Restaurar archivos",
     "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
-    "switch-db-charset": "Cambiar codificación"
+    "switch-db-charset": "Codificación de la base de datos",
+    "general": "General",
+    "advanced": "Avanzado"
 }
