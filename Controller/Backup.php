@@ -696,8 +696,7 @@ class Backup extends Controller
         }
 
         $this->db_charset = $selectedCharset;
-        $this->active_tab = 'download';
-        $this->download_tab = 'advanced';
+        $this->active_tab = 'advanced';
 
         Tools::log()->notice('record-updated-correctly');
     }

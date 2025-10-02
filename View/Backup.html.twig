@@ -20,6 +20,14 @@
                                 <i class="fa-solid fa-upload me-1"></i> {{ trans('restore') }}
                             </button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            {% set btnClass = fsc.active_tab == 'advanced' ? 'nav-link active' : 'nav-link' %}
+                            <button class="{{ btnClass }}" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced"
+                                    type="button" role="tab" aria-controls="advanced"
+                                    aria-selected="{{ fsc.active_tab == 'advanced' ? 'true' : 'false' }}">
+                                <i class="fa-solid fa-gear me-1"></i> {{ trans('advanced') }}
+                            </button>
+                        </li>
                     </ul>
                 </div>
                 <div class="col-auto">
@@ -40,7 +48,6 @@
                             {{ formToken() }}
                             <input type="hidden" name="action">
                             <input type="hidden" name="file_name">
-                            <input type="hidden" name="download_tab" value="{{ fsc.download_tab }}">
                             <div class="card shadow mb-4">
                                 <div class="card-body">
                                     <h2 class="h3">
@@ -48,90 +55,32 @@
                                     </h2>
                                     <p class="card-text">{{ trans('download-backup-p') }}</p>
                                 </div>
-                                <div class="card-footer p-0">
-                                    <div class="px-3 pt-2">
-                                        <ul class="nav nav-pills" id="download-options-tab" role="tablist">
-                                            <li class="nav-item" role="presentation">
-                                                {% set btnClass = fsc.download_tab == 'general' ? 'nav-link active' : 'nav-link' %}
-                                                <button class="{{ btnClass }}" id="download-general-tab" data-bs-toggle="tab"
-                                                        data-bs-target="#download-general" type="button" role="tab"
-                                                        aria-controls="download-general"
-                                                        aria-selected="{{ fsc.download_tab == 'general' ? 'true' : 'false' }}"
-                                                        data-download-tab="general">
-                                                    <i class="fa-solid fa-house me-1"></i> {{ trans('general') }}
+                                <div class="card-footer p-3">
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <div class="btn-group me-2">
+                                            {% if fsc.db_file_name %}
+                                                <button type="button" class="btn btn-success btn-spin-action"
+                                                        onclick="downloadBackupAction('download-sql-file','{{ fsc.db_file_name }}')">
+                                                    <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
                                                 </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                {% set btnClass = fsc.download_tab == 'advanced' ? 'nav-link active' : 'nav-link' %}
-                                                <button class="{{ btnClass }}" id="download-advanced-tab" data-bs-toggle="tab"
-                                                        data-bs-target="#download-advanced" type="button" role="tab"
-                                                        aria-controls="download-advanced"
-                                                        aria-selected="{{ fsc.download_tab == 'advanced' ? 'true' : 'false' }}"
-                                                        data-download-tab="advanced">
-                                                    <i class="fa-solid fa-gear me-1"></i> {{ trans('advanced') }}
+                                            {% else %}
+                                                <button type="button" class="btn btn-secondary btn-spin-action"
+                                                        onclick="createBackupAction('create-sql-file')">
+                                                    <i class="fa-solid fa-database me-2"></i> {{ trans('database') }}
                                                 </button>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="tab-content p-3">
-                                        {% set subTabClass = fsc.download_tab == 'general' ? 'tab-pane fade show active' : 'tab-pane fade' %}
-                                        <div class="{{ subTabClass }}" id="download-general" role="tabpanel"
-                                             aria-labelledby="download-general-tab">
-                                            <div class="d-flex flex-wrap align-items-center gap-2">
-                                                <div class="btn-group me-2">
-                                                    {% if fsc.db_file_name %}
-                                                        <button type="button" class="btn btn-success btn-spin-action"
-                                                                onclick="downloadBackupAction('download-sql-file','{{ fsc.db_file_name }}')">
-                                                            <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
-                                                        </button>
-                                                    {% else %}
-                                                        <button type="button" class="btn btn-secondary btn-spin-action"
-                                                                onclick="createBackupAction('create-sql-file')">
-                                                            <i class="fa-solid fa-database me-2"></i> {{ trans('database') }}
-                                                        </button>
-                                                    {% endif %}
-                                                </div>
-                                                {% if fsc.zip_file_name %}
-                                                    <button type="button" class="btn btn-success btn-spin-action"
-                                                            onclick="downloadBackupAction('download-zip-file','{{ fsc.zip_file_name }}')">
-                                                        <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
-                                                    </button>
-                                                {% else %}
-                                                    <button type="button" class="btn btn-secondary btn-spin-action"
-                                                            onclick="createBackupAction('create-zip-file')">
-                                                        <i class="fa-solid fa-box-archive me-2"></i> {{ trans('files') }}
-                                                    </button>
-                                                {% endif %}
-                                            </div>
+                                            {% endif %}
                                         </div>
-                                        {% set subTabClass = fsc.download_tab == 'advanced' ? 'tab-pane fade show active' : 'tab-pane fade' %}
-                                        <div class="{{ subTabClass }}" id="download-advanced" role="tabpanel"
-                                             aria-labelledby="download-advanced-tab">
-                                            <div class="d-flex flex-wrap align-items-center gap-2">
-                                                <div class="btn-group">
-                                                    <button class="btn btn-secondary dropdown-toggle btn-spin-action"
-                                                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        {{ trans('switch-db-charset') }}: <span class="text-uppercase">{{ fsc.db_charset }}</span>
-                                                    </button>
-                                                    <div class="dropdown-menu dropdown-menu-end">
-                                                        <a class="dropdown-item{% if fsc.db_charset == 'utf8' %} active{% endif %}"
-                                                           href="?action=switch-db-charset&charset=utf8&multireqtoken={{ formToken(false) }}&active_tab=download&download_tab=advanced">
-                                                            utf8
-                                                            {% if fsc.db_charset == 'utf8' %}
-                                                                <i class="fa-solid fa-check ms-2"></i>
-                                                            {% endif %}
-                                                        </a>
-                                                        <a class="dropdown-item{% if fsc.db_charset == 'utf8mb4' %} active{% endif %}"
-                                                           href="?action=switch-db-charset&charset=utf8mb4&multireqtoken={{ formToken(false) }}&active_tab=download&download_tab=advanced">
-                                                            utf8mb4
-                                                            {% if fsc.db_charset == 'utf8mb4' %}
-                                                                <i class="fa-solid fa-check ms-2"></i>
-                                                            {% endif %}
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        {% if fsc.zip_file_name %}
+                                            <button type="button" class="btn btn-success btn-spin-action"
+                                                    onclick="downloadBackupAction('download-zip-file','{{ fsc.zip_file_name }}')">
+                                                <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
+                                            </button>
+                                        {% else %}
+                                            <button type="button" class="btn btn-secondary btn-spin-action"
+                                                    onclick="createBackupAction('create-zip-file')">
+                                                <i class="fa-solid fa-box-archive me-2"></i> {{ trans('files') }}
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -265,6 +214,40 @@
                             </div>
                         </form>
                     </div>
+                    {% set tabClass = fsc.active_tab == 'advanced' ? 'tab-pane fade show active' : 'tab-pane fade' %}
+                    <div class="{{ tabClass }}" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <h2 class="h4 mb-3">
+                                    <i class="fa-solid fa-gear me-2"></i> {{ trans('switch-db-charset') }}
+                                </h2>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <div class="btn-group">
+                                        <button class="btn btn-secondary dropdown-toggle btn-spin-action" type="button"
+                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                            {{ trans('switch-db-charset') }}: <span class="text-uppercase">{{ fsc.db_charset }}</span>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a class="dropdown-item{% if fsc.db_charset == 'utf8' %} active{% endif %}"
+                                               href="?action=switch-db-charset&charset=utf8&multireqtoken={{ formToken(false) }}&active_tab=advanced">
+                                                utf8
+                                                {% if fsc.db_charset == 'utf8' %}
+                                                    <i class="fa-solid fa-check ms-2"></i>
+                                                {% endif %}
+                                            </a>
+                                            <a class="dropdown-item{% if fsc.db_charset == 'utf8mb4' %} active{% endif %}"
+                                               href="?action=switch-db-charset&charset=utf8mb4&multireqtoken={{ formToken(false) }}&active_tab=advanced">
+                                                utf8mb4
+                                                {% if fsc.db_charset == 'utf8mb4' %}
+                                                    <i class="fa-solid fa-check ms-2"></i>
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -305,11 +288,6 @@
         }
 
         $(document).ready(function () {
-            let downloadTabInput = $('#f_download').find('input[name="download_tab"]');
-            $('#download-options-tab button[data-download-tab]').on('shown.bs.tab', function (event) {
-                downloadTabInput.val($(event.target).data('download-tab'));
-            });
-
             $('#f_restore_db').on('submit', function (e) {
                 animateSpinner('add');
                 let fileInput = $(this).find('input[type=file]');
