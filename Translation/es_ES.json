@@ -16,6 +16,7 @@
     "restore-files": "Restaurar archivos",
     "restore-files-p": "Si tienes la copia de seguridad de los archivos, selecciona ese archivo zip y pulsa el botón restaurar.",
     "switch-db-charset": "Codificación de la base de datos",
+    "switch-db-charset-info": "La codificación debe ser la misma que la de la copia de seguridad. Si recibe aviso de que no es la misma, cámbiela desde aquí.",
     "general": "General",
     "advanced": "Avanzado"
 }

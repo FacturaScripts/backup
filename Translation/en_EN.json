@@ -16,6 +16,7 @@
     "restore-files": "Restore files",
     "restore-files-p": "If you have the backup of the files, select that zip file and press the restore button.",
     "switch-db-charset": "Database encoding",
+    "switch-db-charset-info": "The encoding must match the backup. If you receive a warning that it is different, change it from here.",
     "general": "General",
     "advanced": "Advanced"
 }
