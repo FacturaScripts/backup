@@ -194,6 +194,11 @@ class Backup extends Controller
             return;
         }
 
+        if (false === extension_loaded('zip')) {
+            Tools::log()->error('php-extension-not-found', ['%extension%' => 'zip']);
+            return;
+        }
+
         $folder = Tools::folder('MyFiles', 'Backups');
         if (false === Tools::folderCheckOrCreate($folder)) {
             Tools::log()->error('folder-create-error');
