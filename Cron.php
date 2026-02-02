@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2025 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2025-2026 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -32,44 +32,51 @@ class Cron extends CronClass
 
     public function run(): void
     {
-        $frequency = Tools::settings('default', 'backup_frequency');
-        $dayOfWeek = Tools::settings('default', 'weekly_backup_day', 1);
-        $dayOfMonth = Tools::settings('default', 'monthly_backup_day', 1);
+        $frequency = Tools::settings('backup', 'frequency', '1 week');
+        $dayOfWeek = Tools::settings('backup', 'weekly_day', 1);
+        $dayOfMonth = Tools::settings('backup', 'monthly_day', 1);
+        $hour = Tools::settings('backup', 'hour', 3);
 
         $job = $this->job(self::JOB_NAME);
 
         if ($frequency === '1 month') {
-            $job->everyDay($dayOfMonth, 7);
+            $job->everyDay($dayOfMonth, $hour);
         } elseif ($frequency === '1 week') {
             switch ($dayOfWeek) {
                 case 1:
-                    $job->everyMondayAt(7);
+                    $job->everyMondayAt($hour);
                     break;
+
                 case 2:
-                    $job->everyTuesdayAt(7);
+                    $job->everyTuesdayAt($hour);
                     break;
+
                 case 3:
-                    $job->everyWednesdayAt(7);
+                    $job->everyWednesdayAt($hour);
                     break;
+
                 case 4:
-                    $job->everyThursdayAt(7);
+                    $job->everyThursdayAt($hour);
                     break;
+
                 case 5:
-                    $job->everyFridayAt(7);
+                    $job->everyFridayAt($hour);
                     break;
+
                 case 6:
-                    $job->everySaturdayAt(7);
+                    $job->everySaturdayAt($hour);
                     break;
+
                 case 7:
-                    $job->everySundayAt(7);
+                    $job->everySundayAt($hour);
                     break;
+
                 default:
-                    $job->everyMondayAt(7);
+                    $job->everyMondayAt($hour);
             }
         } elseif ($frequency === '1 day') {
-            $job->every('1 day');
-        }
-        else{
+            $job->everyDayAt($hour);
+        } else {
             // selección no válida
             return;
         }

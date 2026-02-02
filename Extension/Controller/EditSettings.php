@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2021-2026 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2026 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -17,35 +17,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace FacturaScripts\Plugins\Backup;
+namespace FacturaScripts\Plugins\Backup\Extension\Controller;
 
-use FacturaScripts\Core\Template\InitClass;
+use Closure;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Lib\AssetManager;
 
-/**
- * Composer autoload.
- */
-require_once __DIR__ . '/vendor/autoload.php';
-
-class Init extends InitClass
+class EditSettings
 {
-    public function init(): void
+    public function createViews(): Closure
     {
-        $this->loadExtension(new Extension\Controller\ListFacturaCliente());
-        $this->loadExtension(new Extension\Controller\EditSettings());
-    }
-
-    public function uninstall(): void
-    {
-    }
-
-    public function update(): void
-    {
-        Tools::settings('backup', 'frequency', '1 week');
-        Tools::settings('backup', 'weekly_day', 1);
-        Tools::settings('backup', 'monthly_day', 1);
-        Tools::settings('backup', 'hour', 3);
-        Tools::settingsSave();
+        return function () {
+            $route = Tools::config('route');
+            AssetManager::addJs($route . '/Plugins/Backup/Assets/JS/BackupSettings.js');
+        };
     }
 }

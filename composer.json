@@ -9,7 +9,7 @@
   ],
   "config": {
     "platform": {
-      "php": "8.9"
+      "php": "8.0"
     }
   },
   "require": {

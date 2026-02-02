@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<view>
+    <columns>
+        <group name="data" icon="fa-solid fa-download" numcolumns="12">
+            <column name="name" display="none" order="0">
+                <widget type="text" fieldname="name" readonly="true" required="true"/>
+            </column>
+            <column name="frequency" id="backup_frequency" numcolumns="3" order="100">
+                <widget type="select" fieldname="frequency" translate="true" required="true">
+                    <values title="daily">1 day</values>
+                    <values title="weekly">1 week</values>
+                    <values title="monthly">1 month</values>
+                </widget>
+            </column>
+            <column name="weekly-day" id="backup_weekly_day" numcolumns="3" order="110">
+                <widget type="select" fieldname="weekly_day" translate="true" required="true">
+                    <values title="monday">1</values>
+                    <values title="tuesday">2</values>
+                    <values title="wednesday">3</values>
+                    <values title="thursday">4</values>
+                    <values title="friday">5</values>
+                    <values title="saturday">6</values>
+                    <values title="sunday">7</values>
+                </widget>
+            </column>
+            <column name="monthly-day" id="backup_monthly_day" numcolumns="3" order="120">
+                <widget type="number" fieldname="monthly_day" min="1" max="31"/>
+            </column>
+            <column name="hour" id="backup_hour" numcolumns="3" order="130">
+                <widget type="number" fieldname="hour" min="0" max="23" required="true"/>
+            </column>
+        </group>
+    </columns>
+</view>
