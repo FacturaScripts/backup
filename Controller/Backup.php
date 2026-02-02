@@ -45,6 +45,9 @@ class Backup extends Controller
     public $backup_list = [];
 
     /** @var string */
+    public $current_charset = '';
+
+    /** @var string */
     public $db_file_name = '';
 
     /** @var string */
@@ -81,6 +84,7 @@ class Backup extends Controller
         parent::privateCore($response, $user, $permissions);
 
         $this->active_tab = $this->request->get('active_tab', 'download');
+        $this->current_charset = Tools::config('mysql_charset', 'utf8');
 
         $action = $this->request->get('action', '');
         switch ($action) {
@@ -132,9 +136,9 @@ class Backup extends Controller
             return false;
         }
 
-        // leemos las primeras 1000 líneas, si encontramos el charset, devolvemos true
+        // leemos las primeras 1000 líneas y recopilamos todos los charsets encontrados
         $line = 0;
-        $dbCharset = '';
+        $foundCharsets = [];
         while ($line < 1000) {
             $line++;
             $buffer = fgets($file);
@@ -144,29 +148,44 @@ class Backup extends Controller
 
             foreach (['utf8', 'utf8mb3', 'utf8mb4'] as $charset) {
                 if (strpos($buffer, ' CHARSET=' . $charset . ' ') !== false) {
-                    $dbCharset = $charset;
-                    break 2;
+                    // utf8mb3 es lo mismo que utf8
+                    $normalizedCharset = $charset === 'utf8mb3' ? 'utf8' : $charset;
+                    $foundCharsets[$normalizedCharset] = true;
                 }
             }
         }
+        fclose($file);
 
-        // utf8mb3 es lo mismo que utf8
-        if ($dbCharset === 'utf8mb3') {
-            $dbCharset = 'utf8';
-        }
-
-        // comparamos con el charset del config.php
-        $configCharset = Tools::config('mysql_charset', 'utf8');
-        if ($dbCharset === $configCharset) {
-            fclose($file);
+        // si no encontramos ningún charset, asumimos que es compatible
+        if (empty($foundCharsets)) {
             return true;
         }
 
+        // convertimos el array a lista de charsets únicos
+        $uniqueCharsets = array_keys($foundCharsets);
+
+        // comparamos con el charset del config.php
+        $configCharset = Tools::config('mysql_charset', 'utf8');
+
+        // si hay múltiples charsets mezclados, mostramos un aviso
+        if (count($uniqueCharsets) > 1) {
+            Tools::log()->warning('backup-charset-mixed-warning', [
+                '%charsets%' => implode(', ', $uniqueCharsets),
+                '%config-charset%' => $configCharset
+            ]);
+            Tools::log()->info('backup-use-fixer-plugin');
+        }
+
+        // verificamos si el charset configurado está entre los encontrados
+        if (in_array($configCharset, $uniqueCharsets)) {
+            return true;
+        }
+
+        // si solo hay un charset y no coincide, mostramos error
         Tools::log()->error('backup-charset-error', [
-            '%db-charset%' => $dbCharset,
+            '%db-charset%' => implode(', ', $uniqueCharsets),
             '%config-charset%' => $configCharset
         ]);
-        fclose($file);
         return false;
     }
 

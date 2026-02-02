@@ -9,11 +9,14 @@
     "download-backup-p": "Descarga una copia de seguridad de tu base de datos y otra de tus archivos. Guarda estos ficheros en un lugar seguro. Si en algún momento quieres restaurar los datos de FacturaScripts, necesitarás estos ficheros.",
     "file-ready-to-download": "Soubor je připraven k stažení",
     "last-backup-more-30d": "Poslední záloha je starší než 30 dnů. Proveďte novou zálohu z nabídky Správce, Zálohy.",
+    "monthly-day": "Día del mes",
     "mysql-support-only": "Tento plugin funguje pouze na MySQL",
     "restore-backup": "Obnovit zálohu",
     "restore-backup-p": "Pokud máte soubory s vaší databází a soubory, můžete obnovit data aplikace FacturaScripts. Vyberte oba soubory a stiskněte tlačítko Obnovit.",
     "restore-backup-warning": "Advertencia: restaurar los datos de FacturaScripts es como volver al pasado. Se eliminará todo lo que no estuviese en la copia de seguridad, es decir, las facturas que hayas realizado después y no estén en la copia, se perderán.",
     "restore-files": "Obnovit soubory",
     "restore-files-p": "Pokud máte zálohu souborů, vyberte tento zip soubor a stiskněte tlačítko Obnovit.",
-    "switch-db-charset": "Změnit kódování DB"
+    "switch-db-charset": "Změnit kódování DB",
+    "switch-db-charset-p": "La codificación de la base de datos debe ser la misma que la de la copia de seguridad. Si necesitas cambiarla pulsa el botón guardar.",
+    "weekly-day": "Día de la semana"
 }

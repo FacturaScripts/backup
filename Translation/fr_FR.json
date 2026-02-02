@@ -9,11 +9,14 @@
     "download-backup-p": "Téléchargez une copie de sauvegarde de votre base de données et de vos fichiers. Gardez-les dans un endroit sûr. Si vous désirez restaurer vos données FacturaScripts à l'avenir, vous en aurez besoin.",
     "file-ready-to-download": "Fichier prêt à être téléchargé",
     "last-backup-more-30d": "La dernière sauvegarde date de plus de 30 jours. Effectuez-en une nouvelle à partir du menu Administrateur, Sauvegardes.",
+    "monthly-day": "Día del mes",
     "mysql-support-only": "Ce plugin fonctionne uniquement sur MySQL",
     "restore-backup": "Restaurer la sauvegarde",
     "restore-backup-p": "Si vous avez vos fichiers et votre base de données, vous pouvez restaurer les données de FacturaScripts. Sélectionnez les deux fichiers et cliquez sur le bouton Restaurer.",
     "restore-backup-warning": "Avertissement : la restauration des données de FacturaScripts revient à effectuer un retour dans le temps. Tout ce qui ne se trouve pas dans la sauvegarde sera effacé, autrement dit les factures que vous avez émises par la suite et qui ne se trouvent pas dans la copie seront perdues.",
     "restore-files": "Restaurar archivos",
     "restore-files-p": "Si vous avez sauvegardé les fichiers, sélectionnez ce fichier zip et appuyez sur le bouton de restauration.",
-    "switch-db-charset": "Modifier le codage"
+    "switch-db-charset": "Modifier le codage",
+    "switch-db-charset-p": "La codificación de la base de datos debe ser la misma que la de la copia de seguridad. Si necesitas cambiarla pulsa el botón guardar.",
+    "weekly-day": "Día de la semana"
 }

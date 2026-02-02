@@ -9,11 +9,14 @@
     "download-backup-p": "scarica-backup-p",
     "file-ready-to-download": "File pronto per il download",
     "last-backup-more-30d": "L'ultima copia di sicurezza ha più di 30 giorni. Fai una nuova copia dal menu Amministratore, Copie di sicurezza.",
+    "monthly-day": "Día del mes",
     "mysql-support-only": "Questo plugin funziona solo su MySQL",
     "restore-backup": "Ripristina il database",
     "restore-backup-p": "Se hai il backup del tuo database, seleziona il file sql e premi Ripristina",
     "restore-backup-warning": "Avviso di ripristino del backup",
     "restore-files": "Ripristina file",
     "restore-files-p": "Se si dispone del file di backup dei file, selezionare tale file zip e fare clic sul pulsante Ripristina.",
-    "switch-db-charset": "Cambia charset DB"
+    "switch-db-charset": "Cambia charset DB",
+    "switch-db-charset-p": "La codificación de la base de datos debe ser la misma que la de la copia de seguridad. Si necesitas cambiarla pulsa el botón guardar.",
+    "weekly-day": "Día de la semana"
 }

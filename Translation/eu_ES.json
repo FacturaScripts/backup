@@ -9,11 +9,14 @@
     "download-backup-p": "Deskargatu zure datu-basearen eta fitxategiaren segurtasun kopia bat. Gorde fitxategi hauek leku seguru batean. Noizbait FacturaScripts-eko datuak berreskuratu nahi badituzu, fitxategi hau beharko duzu.",
     "file-ready-to-download": "Fitxategia deskargatzeko prest",
     "last-backup-more-30d": "Azken babeskopia 30 egunetik gorakoa da. Joan Administratzaileen menura eta berria sortu.",
+    "monthly-day": "Día del mes",
     "mysql-support-only": "Plugin honek MySQL-en funtzionatzen du bakarrik",
     "restore-backup": "Berreskuratu babeskopiak",
     "restore-backup-p": "Badakizu zure datu-basea eta fitxategiak, bertan gordetu dauden informazioa berreskuratu ahal izatea. Aukeratu bi fitxeroak eta egin klik leheneratu botoian.",
     "restore-backup-warning": "Abisua: FacturaScripts datuak berreskuratzea denboran atzera egitea da. Segurtasun kopian ez zegoen guztia ezabatuko da, hau da, gerora egin dituzun eta kopian ez dauden fakturak galduko dira.",
     "restore-files": "Fitxategiak berreskuratu.",
     "restore-files-p": "Fitxategiak kopiatzeko artean, aukeratu zip fitxategia eta berreskuratzeko botoia sakatu.",
-    "switch-db-charset": "Karaktere-kodea aldatu"
+    "switch-db-charset": "Karaktere-kodea aldatu",
+    "switch-db-charset-p": "La codificación de la base de datos debe ser la misma que la de la copia de seguridad. Si necesitas cambiarla pulsa el botón guardar.",
+    "weekly-day": "Día de la semana"
 }

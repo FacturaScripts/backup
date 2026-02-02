@@ -9,11 +9,14 @@
     "download-backup-p": "Pobierz kopię zapasową swojej bazy danych oraz plików. Przechowuj te pliki w bezpiecznym miejscu. Jeśli w przyszłości będziesz chciał przywrócić dane z FacturaScripts, będziesz potrzebować tych plików.",
     "file-ready-to-download": "Plik gotowy do pobrania",
     "last-backup-more-30d": "Ostatnia kopia zapasowa ma ponad 30 dni. Proszę utworzyć nową z menu Administrator, Kopie zapasowe.",
+    "monthly-day": "Día del mes",
     "mysql-support-only": "Ten wtyczka działa tylko na MySQL",
     "restore-backup": "Przywróć bazę danych",
     "restore-backup-p": "Jeśli masz kopię zapasową swojej bazy danych, wybierz plik sql i kliknij przycisk przywróć.",
     "restore-backup-warning": "Ostrzeżenie: przywrócenie danych z FacturaScripts jest jak powrót do przeszłości. Usunięte zostaną wszystkie dane, które nie były w kopii zapasowej, co oznacza, że faktury, które zostały wystawione później, a nie są w kopii, zostaną utracone.",
     "restore-files": "Przywróć pliki",
     "restore-files-p": "Jeśli masz kopię zapasową plików, wybierz ten plik zip i naciśnij przycisk przywróć.",
-    "switch-db-charset": "Zmień kodowanie bazy danych"
+    "switch-db-charset": "Zmień kodowanie bazy danych",
+    "switch-db-charset-p": "La codificación de la base de datos debe ser la misma que la de la copia de seguridad. Si necesitas cambiarla pulsa el botón guardar.",
+    "weekly-day": "Día de la semana"
 }

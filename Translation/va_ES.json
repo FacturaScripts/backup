@@ -9,11 +9,14 @@
     "download-backup-p": "download-backup-p",
     "file-ready-to-download": "Arxiu llest per descarregar",
     "last-backup-more-30d": "L'última còpia de seguretat té més de 30 dies. Feu una nova des del menú Administrador, Còpies de seguretat.",
+    "monthly-day": "Día del mes",
     "mysql-support-only": "Aquest plugin només funciona sobre MySQL",
     "restore-backup": "Restaurar la base de dades",
     "restore-backup-p": "Si tens la còpia de seguretat de la teua base de dades, selecciona l'arxiu sql i preme restaurar",
     "restore-backup-warning": "restore-backup-warning",
     "restore-files": "Restaura arxius",
     "restore-files-p": "Si tens la còpia de seguretat dels arxius, selecciona aquest arxiu zip i prem el botó restaurar.",
-    "switch-db-charset": "Canviar codificació"
+    "switch-db-charset": "Canviar codificació",
+    "switch-db-charset-p": "La codificación de la base de datos debe ser la misma que la de la copia de seguridad. Si necesitas cambiarla pulsa el botón guardar.",
+    "weekly-day": "Día de la semana"
 }
