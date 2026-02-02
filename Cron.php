@@ -20,6 +20,7 @@
 namespace FacturaScripts\Plugins\Backup;
 
 use Coderatio\SimpleBackup\SimpleBackup;
+use FacturaScripts\Core\Plugins;
 use FacturaScripts\Core\Template\CronClass;
 use FacturaScripts\Core\Tools;
 use RecursiveDirectoryIterator;
@@ -32,6 +33,11 @@ class Cron extends CronClass
 
     public function run(): void
     {
+        // si está activado el plugin SpaceInstance o CityInstance, no hacemos backup automático
+        if (Plugins::isEnabled('SpaceInstance') || Plugins::isEnabled('CityInstance')) {
+            return;
+        }
+
         $frequency = Tools::settings('backup', 'frequency', '1 week');
         $dayOfWeek = Tools::settings('backup', 'weekly_day', 1);
         $dayOfMonth = Tools::settings('backup', 'monthly_day', 1);
