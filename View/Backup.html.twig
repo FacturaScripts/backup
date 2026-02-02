@@ -268,6 +268,52 @@
                                 </div>
                             </div>
                         </form>
+
+                        <div class="card shadow mb-4">
+                            <div class="card-body">
+                                <h3 class="h4">
+                                    <i class="fa-solid fa-clock me-2"></i> {{ trans('automatic-backup') }}
+                                </h3>
+                                <p class="card-text">
+                                    {{ trans('automatic-backup-info') }}
+                                </p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <dl class="row mb-0">
+                                            <dt class="col-sm-5">{{ trans('frequency') }}:</dt>
+                                            <dd class="col-sm-7">
+                                                {% if fsc.cron_frequency == '1 day' %}
+                                                    {{ trans('daily') }}
+                                                {% elseif fsc.cron_frequency == '1 week' %}
+                                                    {{ trans('weekly') }}
+                                                {% elseif fsc.cron_frequency == '1 month' %}
+                                                    {{ trans('monthly') }}
+                                                {% else %}
+                                                    {{ fsc.cron_frequency }}
+                                                {% endif %}
+                                            </dd>
+                                            {% if fsc.cron_frequency == '1 week' %}
+                                                <dt class="col-sm-5">{{ trans('day') }}:</dt>
+                                                <dd class="col-sm-7">
+                                                    {% set days = ['', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] %}
+                                                    {{ trans(days[fsc.cron_weekly_day]) }}
+                                                </dd>
+                                            {% elseif fsc.cron_frequency == '1 month' %}
+                                                <dt class="col-sm-5">{{ trans('day') }}:</dt>
+                                                <dd class="col-sm-7">{{ fsc.cron_monthly_day }}</dd>
+                                            {% endif %}
+                                            <dt class="col-sm-5">{{ trans('hour') }}:</dt>
+                                            <dd class="col-sm-7">{{ fsc.cron_hour }}:00</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer p-2">
+                                <a href="EditSettings?&activetab=SettingsBackup" class="btn btn-primary">
+                                    <i class="fa-solid fa-cog me-2"></i> {{ trans('control-panel') }}
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
