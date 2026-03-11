@@ -619,7 +619,7 @@ class Backup extends Controller
         $backup = new MySQLBackup($db);
 
         $restore = $backup->restore($sqlFile);
-        if (false === $restore) {
+        if (true !== $restore) {
             Tools::log()->error('record-save-error');
             $this->dataBase->connect();
             Cache::clear();
