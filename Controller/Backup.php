@@ -19,7 +19,7 @@
 
 namespace FacturaScripts\Plugins\Backup\Controller;
 
-use Coderatio\SimpleBackup\SimpleBackup;
+use DatabaseBackupManager\MySQLBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Cache;
@@ -27,6 +27,7 @@ use FacturaScripts\Core\Response;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\UploadedFile;
 use FacturaScripts\Dinamic\Model\User;
+use PDO;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ZipArchive;
@@ -243,12 +244,16 @@ class Backup extends Controller
         }
 
         $file_name = date('Y-m-d_H-i-s') . '.sql';
-        SimpleBackup::setDatabase([
-            Tools::config('db_name'),
-            Tools::config('db_user'),
-            Tools::config('db_pass'),
-            Tools::config('db_host')
-        ])->storeAfterExportTo($folder, $file_name);
+
+        //definimos la configurcion de la base de datos y el directorio de backup
+        $db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
+        $backupDir = Tools::folder('MyFiles', 'Backups');
+
+        $backup = new MySQLBackup($db, $backupDir);
+
+        //exportamos la base de datos a un archivo y le cambiamos el nombre para que tenga el formato correcto
+        $file = $backup->backup();
+        rename($file, Tools::folder('MyFiles', 'Backups', $file_name));
 
         $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
         if (false === file_exists($file_path)) {
@@ -610,13 +615,11 @@ class Backup extends Controller
         $this->dataBase->close();
 
         // importamos el backup
-        $backup = SimpleBackup::setDatabase([
-            Tools::config('db_name'),
-            Tools::config('db_user'),
-            Tools::config('db_pass'),
-            Tools::config('db_host')
-        ])->importFrom($sqlFile);
-        if (false === $backup->getResponse()->status) {
+        $db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
+        $backup = new MySQLBackup($db);
+
+        $restore = $backup->restore($sqlFile);
+        if (false === $restore) {
             Tools::log()->error('record-save-error');
             $this->dataBase->connect();
             Cache::clear();
