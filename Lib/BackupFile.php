@@ -19,10 +19,12 @@
 
 namespace FacturaScripts\Plugins\Backup\Lib;
 
+use Exception;
 use FacturaScripts\Core\Tools;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use ZipArchive;
+use ZipStream\Option\Archive;
+use ZipStream\ZipStream;
 
 /**
  * @author Daniel Fernández Giménez <contacto@danielfg.es>
@@ -31,58 +33,74 @@ class BackupFile
 {
     public static function generate(string $channel = ''): bool
     {
-		$folder = Tools::folder('MyFiles', 'Backups');
-		if (false === Tools::folderCheckOrCreate($folder)) {
-			Tools::log($channel)->error('folder-create-error');
-			return false;
-		}
+        $folder = Tools::folder('MyFiles', 'Backups');
+        if (false === Tools::folderCheckOrCreate($folder)) {
+            Tools::log($channel)->error('folder-create-error');
+            return false;
+        }
 
-		// creamos un archivo
-		$file_path = Tools::folder('MyFiles', 'Backups', date('Y-m-d_H-i-s') . '.zip');
-		if (false === static::zipFolder($file_path)) {
-			Tools::log($channel)->error('record-save-error');
-			return false;
-		}
+        // creamos un archivo
+        $file_path = Tools::folder('MyFiles', 'Backups', date('Y-m-d_H-i-s') . '.zip');
+        if (false === static::zipFolder($file_path)) {
+            Tools::log($channel)->error('record-save-error');
+            return false;
+        }
 
-		// si el tamaño es 0, mostramos un aviso
-		if (filesize($file_path) === 0) {
-			Tools::log($channel)->warning('backup-empty-warning');
-		}
+        // si el tamaño es 0, mostramos un aviso
+        if (filesize($file_path) === 0) {
+            Tools::log($channel)->warning('backup-empty-warning');
+        }
 
         return true;
     }
 
     protected static function zipFolder(string $fileName): bool
-	{
-		$zip = new ZipArchive();
-		if (false === $zip->open($fileName, ZIPARCHIVE::CREATE | ZipArchive::OVERWRITE)) {
-			return false;
-		}
+    {
+        // abrimos un stream de escritura hacia el archivo destino
+        $outputStream = fopen($fileName, 'wb');
+        if ($outputStream === false) {
+            return false;
+        }
 
-		$files = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator(FS_FOLDER),
-			RecursiveIteratorIterator::LEAVES_ONLY
-		);
+        try {
+            // configuramos ZipStream para escribir directamente al stream del archivo
+            $options = new Archive();
+            $options->setSendHttpHeaders(false);
+            $options->setOutputStream($outputStream);
 
-		foreach ($files as $name => $file) {
-			if ($file->isDir() || substr($name, -4) === '.zip') {
-				continue;
-			}
+            $zip = new ZipStream(basename($fileName), $options);
 
-			$filePath = $file->getRealPath();
-			$relativePath = str_replace(DIRECTORY_SEPARATOR, '/', substr($filePath, strlen(FS_FOLDER) + 1));
+            $files = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator(FS_FOLDER),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
 
-			// excluimos algunas carpetas
-			$exclude = ['MyFiles/Backups', 'MyFiles/Cache', 'MyFiles/Tmp', 'Dinamic'];
-			foreach ($exclude as $folder) {
-				if (strpos($relativePath, $folder) === 0) {
-					continue 2;
-				}
-			}
+            foreach ($files as $name => $file) {
+                if ($file->isDir() || substr($name, -4) === '.zip') {
+                    continue;
+                }
 
-			$zip->addFile($filePath, $relativePath);
-		}
+                $filePath = $file->getRealPath();
+                $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', substr($filePath, strlen(FS_FOLDER) + 1));
 
-		return $zip->close();
-	}
+                // excluimos algunas carpetas
+                $exclude = ['MyFiles/Backups', 'MyFiles/Cache', 'MyFiles/Tmp', 'Dinamic'];
+                foreach ($exclude as $folder) {
+                    if (strpos($relativePath, $folder) === 0) {
+                        continue 2;
+                    }
+                }
+
+                $zip->addFileFromPath($relativePath, $filePath);
+            }
+
+            $zip->finish();
+        } catch (Exception $e) {
+            fclose($outputStream);
+            return false;
+        }
+
+        fclose($outputStream);
+        return true;
+    }
 }
