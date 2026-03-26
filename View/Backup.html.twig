@@ -1,382 +1,369 @@
 {% extends "Master/MenuBghTemplate.html.twig" %}
 
 {% block body %}
-    <div class="bg-light pt-4 pb-5">
-        <div class="container pb-4">
-            <div class="row">
-                <div class="col">
-                    <ul class="nav nav-pills mb-3" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            {% set btnClass = fsc.active_tab == 'download' ? 'nav-link active' : 'nav-link' %}
-                            <button class="{{ btnClass }}" id="download-tab" data-bs-toggle="tab"
-                                    data-bs-target="#download"
-                                    type="button" role="tab" aria-controls="download" aria-selected="true">
-                                <i class="fa-solid fa-download me-1"></i> {{ trans('download') }}
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            {% set btnClass = fsc.active_tab == 'restore' ? 'nav-link active' : 'nav-link' %}
-                            <button class="{{ btnClass }}" id="restore-tab" data-bs-toggle="tab"
-                                    data-bs-target="#restore"
-                                    type="button" role="tab" aria-controls="restore" aria-selected="false">
-                                <i class="fa-solid fa-upload me-1"></i> {{ trans('restore') }}
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            {% set btnClass = fsc.active_tab == 'settings' ? 'nav-link active' : 'nav-link' %}
-                            <button class="{{ btnClass }}" id="settings-tab" data-bs-toggle="tab"
-                                    data-bs-target="#settings"
-                                    type="button" role="tab" aria-controls="settings" aria-selected="false">
-                                <i class="fa-solid fa-cog me-1"></i> {{ trans('settings') }}
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-auto">
-                    <h1 class="h4">
-                        <i class="fa-solid fa-save fa-fw"></i> {{ fsc.title }}
-                    </h1>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="container" style="margin-top: -65px;">
-        <div class="row">
-            <div class="col">
-                <div class="tab-content">
-                    {% set tabClass = fsc.active_tab == 'download' ? 'tab-pane fade show active' : 'tab-pane fade' %}
-                    <div class="{{ tabClass }}" id="download" role="tabpanel" aria-labelledby="download-tab">
-                        <form action="{{ fsc.url() }}" id="f_download" method="post">
-                            {{ formToken() }}
-                            <input type="hidden" name="action">
-                            <input type="hidden" name="file_name">
-                            <div class="card shadow mb-4">
-                                <div class="card-body">
-                                    <h2 class="h3">
-                                        <i class="fa-solid fa-file-arrow-down me-2"></i> {{ trans('download-backup') }}
-                                    </h2>
-                                    <p class="card-text">{{ trans('download-backup-p') }}</p>
-                                </div>
-                                <div class="card-footer p-2">
-                                    {% if fsc.db_file_name %}
-                                        <button type="button" class="btn btn-success btn-spin-action me-2"
-                                                onclick="downloadBackupAction('download-sql-file','{{ fsc.db_file_name }}')">
-                                            <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
-                                        </button>
-                                    {% else %}
-                                        <button type="button" class="btn btn-secondary btn-spin-action me-2"
-                                                onclick="createBackupAction('create-sql-file')">
-                                            <i class="fa-solid fa-database me-2"></i> {{ trans('database') }}
-                                        </button>
-                                    {% endif %}
-                                    {% if fsc.zip_file_name %}
-                                        <button type="button" class="btn btn-success btn-spin-action"
-                                                onclick="downloadBackupAction('download-zip-file','{{ fsc.zip_file_name }}')">
-                                            <i class="fa-solid fa-download me-2"></i> {{ trans('download') }}
-                                        </button>
-                                    {% else %}
-                                        <button type="submit" class="btn btn-secondary btn-spin-action"
-                                                onclick="createBackupAction('create-zip-file')">
-                                            <i class="fa-solid fa-box-archive me-2"></i> {{ trans('files') }}
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="card shadow mb-5">
-                                <div class="card-body">
-                                    <h3 class="h4 mb-0">
-                                        <i class="fa-solid fa-calendar-days me-2"></i> {{ trans('history') }}
-                                    </h3>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-striped mb-0">
-                                        <thead>
-                                        <tr>
-                                            <th>{{ trans('database') }}</th>
-                                            <th class="text-end">{{ trans('size') }}</th>
-                                            <th>{{ trans('files') }}</th>
-                                            <th class="text-end">{{ trans('size') }}</th>
-                                            <th class="text-end">{{ trans('date') }}</th>
-                                            <th></th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for backup in fsc.backup_list %}
-                                            <tr>
-                                                <td>
-                                                    {% if backup.sql_file %}
-                                                        <a href="#"
-                                                           onclick="downloadBackupAction('download-sql-file','{{ backup.sql_file }}')">
-                                                            {{ backup.sql_file }}
-                                                        </a>
-                                                    {% else %}
-                                                        -
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-end">
-                                                    {% if backup.sql_file %}
-                                                        {{ bytes(backup.sql_size) }}
-                                                    {% else %}
-                                                        -
-                                                    {% endif %}
-                                                </td>
-                                                <td>
-                                                    {% if backup.zip_file %}
-                                                        <a href="#"
-                                                           onclick="downloadBackupAction('download-zip-file','{{ backup.zip_file }}')">
-                                                            {{ backup.zip_file }}
-                                                        </a>
-                                                    {% else %}
-                                                        -
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-end">
-                                                    {% if backup.zip_file %}
-                                                        {{ bytes(backup.zip_size) }}
-                                                    {% else %}
-                                                        -
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-end">{{ backup.date }}</td>
-                                                <td class="text-end">
-                                                    {% if backup.sql_file or backup.zip_file %}
-                                                        <a href="#"
-                                                           onclick="deleteBackupAction('{{ backup.sql_file }}','{{ backup.zip_file }}')"
-                                                           title="{{ trans('delete') }}">
-                                                            <i class="fa-solid fa-trash-alt text-danger"></i>
-                                                        </a>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% else %}
-                                            <tr>
-                                                <td colspan="6" class="table-warning">
-                                                    {{ trans('no-data') }}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    {% set tabClass = fsc.active_tab == 'restore' ? 'tab-pane fade show active' : 'tab-pane fade' %}
-                    <div class="{{ tabClass }}" id="restore" role="tabpanel" aria-labelledby="restore-tab">
-                        <form action="{{ fsc.url() }}" id="f_restore_db" method="post" enctype="multipart/form-data">
-                            {{ formToken() }}
-                            <input type="hidden" name="action" value="restore-backup"/>
-                            <input type="hidden" name="active_tab" value="restore"/>
-                            <div class="card shadow mb-4">
-                                <div class="card-body bg-warning">
-                                    <h3 class="h5 mb-0">
-                                        <i class="fa-solid fa-database me-2"></i> {{ trans('restore-backup') }}
-                                    </h3>
-                                </div>
-                                <div class="card-body">
-                                    <p>
-                                        {{ trans('restore-backup-p') }}
-                                        <span class="text-danger">{{ trans('restore-backup-warning') }}</span>
-                                    </p>
-                                    <div class="mb-3">
-                                        <label for="db_file" class="form-label">{{ trans('database') }}</label>
-                                        <input type="file" name="db_file" id="db_file" accept=".sql,.sql.gz"
-                                               class="form-control" required/>
-                                    </div>
-                                    <p class="card-text text-muted">
-                                        {{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
-                                    </p>
-                                </div>
-                                <div class="card-footer p-2">
-                                    <button type="submit" class="btn btn-warning btn-spin-action">
-                                        <i class="fa-solid fa-rotate-left me-2"></i> {{ trans('restore') }}
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+	<div class="bg-light pt-4 pb-5">
+		<div class="container pb-4">
+			<div class="row">
+				<div class="col">
+					<ul class="nav nav-pills mb-3" role="tablist">
+						<li class="nav-item" role="presentation">
+							{% set btnClass = fsc.active_tab == 'download' ? 'nav-link active' : 'nav-link' %}
+							<button class="{{ btnClass }}" id="download-tab" data-bs-toggle="tab" data-bs-target="#download" type="button" role="tab" aria-controls="download" aria-selected="true">
+								<i class="fa-solid fa-download me-1"></i>
+								{{ trans('download') }}
+							</button>
+						</li>
+						<li class="nav-item" role="presentation">
+							{% set btnClass = fsc.active_tab == 'restore' ? 'nav-link active' : 'nav-link' %}
+							<button class="{{ btnClass }}" id="restore-tab" data-bs-toggle="tab" data-bs-target="#restore" type="button" role="tab" aria-controls="restore" aria-selected="false">
+								<i class="fa-solid fa-upload me-1"></i>
+								{{ trans('restore') }}
+							</button>
+						</li>
+						<li class="nav-item" role="presentation">
+							{% set btnClass = fsc.active_tab == 'settings' ? 'nav-link active' : 'nav-link' %}
+							<button class="{{ btnClass }}" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
+								<i class="fa-solid fa-cog me-1"></i>
+								{{ trans('settings') }}
+							</button>
+						</li>
+					</ul>
+				</div>
+				<div class="col-auto">
+					<h1 class="h4">
+						<i class="fa-solid fa-save fa-fw"></i>
+						{{ fsc.title }}
+					</h1>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="container" style="margin-top: -65px;">
+		<div class="row">
+			<div class="col">
+				<div class="tab-content">
+					{% set tabClass = fsc.active_tab == 'download' ? 'tab-pane fade show active' : 'tab-pane fade' %}
+					<div class="{{ tabClass }}" id="download" role="tabpanel" aria-labelledby="download-tab">
+						<form action="{{ fsc.url() }}" id="f_download" method="post">
+							{{ formToken() }}
+							<input type="hidden" name="action">
+							<input type="hidden" name="file_name">
+							<div class="card shadow mb-4">
+								<div class="card-body">
+									<h2 class="h3">
+										<i class="fa-solid fa-file-arrow-down me-2"></i>
+										{{ trans('download-backup') }}
+									</h2>
+									<p class="card-text">{{ trans('download-backup-p') }}</p>
+								</div>
+								<div class="card-footer p-2">
+									<button type="button" class="btn btn-secondary btn-spin-action me-2" onclick="createBackupAction('create-sql-file')">
+										<i class="fa-solid fa-database me-2"></i>
+										{{ trans('database') }}
+									</button>
+									<button type="submit" class="btn btn-secondary btn-spin-action" onclick="createBackupAction('create-zip-file')">
+										<i class="fa-solid fa-box-archive me-2"></i>
+										{{ trans('files') }}
+									</button>
+								</div>
+							</div>
+							<div class="card shadow mb-5">
+								<div class="card-body">
+									<h3 class="h4 mb-0">
+										<i class="fa-solid fa-calendar-days me-2"></i>
+										{{ trans('history') }}
+									</h3>
+								</div>
+								<div class="table-responsive">
+									<table class="table table-hover table-striped mb-0">
+										<thead>
+											<tr>
+												<th>{{ trans('database') }}</th>
+												<th class="text-end">{{ trans('size') }}</th>
+												<th>{{ trans('files') }}</th>
+												<th class="text-end">{{ trans('size') }}</th>
+												<th class="text-end">{{ trans('date') }}</th>
+												<th></th>
+											</tr>
+										</thead>
+										<tbody>
+											{% for backup in fsc.backup_list %}
+												<tr>
+													<td>
+														{% if backup.sql_file %}
+															<a href="#" onclick="downloadBackupAction('download-sql-file','{{ backup.sql_file }}')">
+																{{ backup.sql_file }}
+															</a>
+														{% else %}
+															-
+														{% endif %}
+													</td>
+													<td class="text-end">
+														{% if backup.sql_file %}
+															{{ bytes(backup.sql_size) }}
+														{% else %}
+															-
+														{% endif %}
+													</td>
+													<td>
+														{% if backup.zip_file %}
+															<a href="#" onclick="downloadBackupAction('download-zip-file','{{ backup.zip_file }}')">
+																{{ backup.zip_file }}
+															</a>
+														{% else %}
+															-
+														{% endif %}
+													</td>
+													<td class="text-end">
+														{% if backup.zip_file %}
+															{{ bytes(backup.zip_size) }}
+														{% else %}
+															-
+														{% endif %}
+													</td>
+													<td class="text-end">{{ backup.date }}</td>
+													<td class="text-end">
+														{% if backup.sql_file or backup.zip_file %}
+															<a href="#" onclick="deleteBackupAction('{{ backup.sql_file }}','{{ backup.zip_file }}')" title="{{ trans('delete') }}">
+																<i class="fa-solid fa-trash-alt text-danger"></i>
+															</a>
+														{% endif %}
+													</td>
+												</tr>
+											{% else %}
+												<tr>
+													<td colspan="6" class="table-warning">
+														{{ trans('no-data') }}
+													</td>
+												</tr>
+											{% endfor %}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</form>
+					</div>
+					{% set tabClass = fsc.active_tab == 'restore' ? 'tab-pane fade show active' : 'tab-pane fade' %}
+					<div class="{{ tabClass }}" id="restore" role="tabpanel" aria-labelledby="restore-tab">
+						<form action="{{ fsc.url() }}" id="f_restore_db" method="post" enctype="multipart/form-data">
+							{{ formToken() }}
+							<input type="hidden" name="action" value="restore-backup"/>
+							<input type="hidden" name="active_tab" value="restore"/>
+							<div class="card shadow mb-4">
+								<div class="card-body bg-warning">
+									<h3 class="h5 mb-0">
+										<i class="fa-solid fa-database me-2"></i>
+										{{ trans('restore-backup') }}
+									</h3>
+								</div>
+								<div class="card-body">
+									<p>
+										{{ trans('restore-backup-p') }}
+										<span class="text-danger">{{ trans('restore-backup-warning') }}</span>
+									</p>
+									<div class="mb-3">
+										<label for="db_file" class="form-label">{{ trans('database') }}</label>
+										<input type="file" name="db_file" id="db_file" accept=".sql,.sql.gz" class="form-control" required/>
+									</div>
+									<p class="card-text text-muted">
+										{{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
+									</p>
+								</div>
+								<div class="card-footer p-2">
+									<button type="submit" class="btn btn-warning btn-spin-action">
+										<i class="fa-solid fa-rotate-left me-2"></i>
+										{{ trans('restore') }}
+									</button>
+								</div>
+							</div>
+						</form>
 
-                        <form action="{{ fsc.url() }}" id="f_restore_files" method="post" enctype="multipart/form-data">
-                            {{ formToken() }}
-                            <input type="hidden" name="action" value="restore-files"/>
-                            <input type="hidden" name="active_tab" value="restore"/>
-                            <div class="card shadow mb-4">
-                                <div class="card-body text-white bg-secondary">
-                                    <h3 class="h5 mb-0">
-                                        <i class="fa-solid fa-upload me-2"></i> {{ trans('restore-files') }}
-                                    </h3>
-                                </div>
-                                <div class="card-body">
-                                    <p>{{ trans('restore-files-p') }}</p>
-                                    <div class="mb-3">
-                                        <label for="zip_file" class="form-label">{{ trans('files') }}</label>
-                                        <input type="file" name="zip_file" id="zip_file" accept=".zip" class="form-control"
-                                               required/>
-                                    </div>
-                                    <p class="card-text text-muted">
-                                        {{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
-                                    </p>
-                                </div>
-                                <div class="card-footer p-2">
-                                    <button type="submit" class="btn btn-warning btn-spin-action">
-                                        <i class="fa-solid fa-rotate-left me-2"></i> {{ trans('restore') }}
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    {% set tabClass = fsc.active_tab == 'settings' ? 'tab-pane fade show active' : 'tab-pane fade' %}
-                    <div class="{{ tabClass }}" id="settings" role="tabpanel" aria-labelledby="settings-tab">
-                        <form action="{{ fsc.url() }}" method="get">
-                            <input type="hidden" name="action" value="switch-db-charset"/>
-                            <input type="hidden" name="multireqtoken" value="{{ formToken(false) }}"/>
-                            <input type="hidden" name="active_tab" value="settings"/>
-                            <div class="card shadow mb-4">
-                                <div class="card-body">
-                                    <h3 class="h4">
-                                        <i class="fa-solid fa-database me-2"></i> {{ trans('switch-db-charset') }}
-                                    </h3>
-                                    <p class="card-text">
-                                        {{ trans('switch-db-charset-p') }}
-                                    </p>
-                                    <div class="mb-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="charset" id="charset_utf8"
-                                                   value="utf8" {% if fsc.current_charset == 'utf8' %}checked{% endif %}>
-                                            <label class="form-check-label" for="charset_utf8">
-                                                <strong>UTF-8</strong>
-                                                {% if fsc.current_charset == 'utf8' %}
-                                                    <span class="badge bg-success ms-2">{{ trans('active') }}</span>
-                                                {% endif %}
-                                            </label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="charset" id="charset_utf8mb4"
-                                                   value="utf8mb4" {% if fsc.current_charset == 'utf8mb4' %}checked{% endif %}>
-                                            <label class="form-check-label" for="charset_utf8mb4">
-                                                <strong>UTF-8 MB4</strong>
-                                                {% if fsc.current_charset == 'utf8mb4' %}
-                                                    <span class="badge bg-success ms-2">{{ trans('active') }}</span>
-                                                {% endif %}
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer p-2">
-                                    <button type="submit" class="btn btn-warning btn-spin-action">
-                                        <i class="fa-solid fa-save me-2"></i> {{ trans('save') }}
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+						<form action="{{ fsc.url() }}" id="f_restore_files" method="post" enctype="multipart/form-data">
+							{{ formToken() }}
+							<input type="hidden" name="action" value="restore-files"/>
+							<input type="hidden" name="active_tab" value="restore"/>
+							<div class="card shadow mb-4">
+								<div class="card-body text-white bg-secondary">
+									<h3 class="h5 mb-0">
+										<i class="fa-solid fa-upload me-2"></i>
+										{{ trans('restore-files') }}
+									</h3>
+								</div>
+								<div class="card-body">
+									<p>{{ trans('restore-files-p') }}</p>
+									<div class="mb-3">
+										<label for="zip_file" class="form-label">{{ trans('files') }}</label>
+										<input type="file" name="zip_file" id="zip_file" accept=".zip" class="form-control" required/>
+									</div>
+									<p class="card-text text-muted">
+										{{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
+									</p>
+								</div>
+								<div class="card-footer p-2">
+									<button type="submit" class="btn btn-warning btn-spin-action">
+										<i class="fa-solid fa-rotate-left me-2"></i>
+										{{ trans('restore') }}
+									</button>
+								</div>
+							</div>
+						</form>
+					</div>
+					{% set tabClass = fsc.active_tab == 'settings' ? 'tab-pane fade show active' : 'tab-pane fade' %}
+					<div class="{{ tabClass }}" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+						<form action="{{ fsc.url() }}" method="get">
+							<input type="hidden" name="action" value="switch-db-charset"/>
+							<input type="hidden" name="multireqtoken" value="{{ formToken(false) }}"/>
+							<input type="hidden" name="active_tab" value="settings"/>
+							<div class="card shadow mb-4">
+								<div class="card-body">
+									<h3 class="h4">
+										<i class="fa-solid fa-database me-2"></i>
+										{{ trans('switch-db-charset') }}
+									</h3>
+									<p class="card-text">
+										{{ trans('switch-db-charset-p') }}
+									</p>
+									<div class="mb-3">
+										<div class="form-check">
+											<input class="form-check-input" type="radio" name="charset" id="charset_utf8" value="utf8" {% if fsc.current_charset == 'utf8' %} checked {% endif %}>
+											<label class="form-check-label" for="charset_utf8">
+												<strong>UTF-8</strong>
+												{% if fsc.current_charset == 'utf8' %}
+													<span class="badge bg-success ms-2">{{ trans('active') }}</span>
+												{% endif %}
+											</label>
+										</div>
+										<div class="form-check">
+											<input class="form-check-input" type="radio" name="charset" id="charset_utf8mb4" value="utf8mb4" {% if fsc.current_charset == 'utf8mb4' %} checked {% endif %}>
+											<label class="form-check-label" for="charset_utf8mb4">
+												<strong>UTF-8 MB4</strong>
+												{% if fsc.current_charset == 'utf8mb4' %}
+													<span class="badge bg-success ms-2">{{ trans('active') }}</span>
+												{% endif %}
+											</label>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer p-2">
+									<button type="submit" class="btn btn-warning btn-spin-action">
+										<i class="fa-solid fa-save me-2"></i>
+										{{ trans('save') }}
+									</button>
+								</div>
+							</div>
+						</form>
 
-                        <div class="card shadow mb-4">
-                            <div class="card-body">
-                                <h3 class="h4">
-                                    <i class="fa-solid fa-clock me-2"></i> {{ trans('automatic-backup') }}
-                                </h3>
-                                <p class="card-text">
-                                    {{ trans('automatic-backup-info') }}
-                                </p>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <dl class="row mb-0">
-                                            <dt class="col-sm-5">{{ trans('frequency') }}:</dt>
-                                            <dd class="col-sm-7">
-                                                {% if fsc.cron_frequency == '1 day' %}
-                                                    {{ trans('daily') }}
-                                                {% elseif fsc.cron_frequency == '1 week' %}
-                                                    {{ trans('weekly') }}
-                                                {% elseif fsc.cron_frequency == '1 month' %}
-                                                    {{ trans('monthly') }}
-                                                {% else %}
-                                                    {{ fsc.cron_frequency }}
-                                                {% endif %}
-                                            </dd>
-                                            {% if fsc.cron_frequency == '1 week' %}
-                                                <dt class="col-sm-5">{{ trans('day') }}:</dt>
-                                                <dd class="col-sm-7">
-                                                    {% set days = ['', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] %}
-                                                    {{ trans(days[fsc.cron_weekly_day]) }}
-                                                </dd>
-                                            {% elseif fsc.cron_frequency == '1 month' %}
-                                                <dt class="col-sm-5">{{ trans('day') }}:</dt>
-                                                <dd class="col-sm-7">{{ fsc.cron_monthly_day }}</dd>
-                                            {% endif %}
-                                            <dt class="col-sm-5">{{ trans('hour') }}:</dt>
-                                            <dd class="col-sm-7">{{ fsc.cron_hour }}:00</dd>
-                                        </dl>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer p-2">
-                                <a href="EditSettings?&activetab=SettingsBackup" class="btn btn-primary">
-                                    <i class="fa-solid fa-cog me-2"></i> {{ trans('control-panel') }}
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+						<div class="card shadow mb-4">
+							<div class="card-body">
+								<h3 class="h4">
+									<i class="fa-solid fa-clock me-2"></i>
+									{{ trans('automatic-backup') }}
+								</h3>
+								<p class="card-text">
+									{{ trans('automatic-backup-info') }}
+								</p>
+								<div class="row">
+									<div class="col-md-6">
+										<dl class="row mb-0">
+											<dt class="col-sm-5">{{ trans('frequency') }}:</dt>
+											<dd class="col-sm-7">
+												{% if fsc.cron_frequency == '1 day' %}
+													{{ trans('daily') }}
+												{% elseif fsc.cron_frequency == '1 week' %}
+													{{ trans('weekly') }}
+												{% elseif fsc.cron_frequency == '1 month' %}
+													{{ trans('monthly') }}
+												{% else %}
+													{{ fsc.cron_frequency }}
+												{% endif %}
+											</dd>
+											{% if fsc.cron_frequency == '1 week' %}
+												<dt class="col-sm-5">{{ trans('day') }}:</dt>
+												<dd class="col-sm-7">
+													{% set days = ['', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] %}
+													{{ trans(days[fsc.cron_weekly_day]) }}
+												</dd>
+											{% elseif fsc.cron_frequency == '1 month' %}
+												<dt class="col-sm-5">{{ trans('day') }}:</dt>
+												<dd class="col-sm-7">{{ fsc.cron_monthly_day }}</dd>
+											{% endif %}
+											<dt class="col-sm-5">{{ trans('hour') }}:</dt>
+											<dd class="col-sm-7">{{ fsc.cron_hour }}:00</dd>
+										</dl>
+									</div>
+								</div>
+							</div>
+							<div class="card-footer p-2">
+								<a href="EditSettings?&activetab=SettingsBackup" class="btn btn-primary">
+									<i class="fa-solid fa-cog me-2"></i>
+									{{ trans('control-panel') }}
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-    <form action="{{ fsc.url() }}" id="f_delete_backup" method="post">
-        {{ formToken() }}
-        <input type="hidden" name="action" value="delete-backup"/>
-        <input type="hidden" name="db_file">
-        <input type="hidden" name="zip_file">
-    </form>
+	<form action="{{ fsc.url() }}" id="f_delete_backup" method="post">
+		{{ formToken() }}
+		<input type="hidden" name="action" value="delete-backup"/>
+		<input type="hidden" name="db_file">
+		<input type="hidden" name="zip_file">
+	</form>
 {% endblock %}
 
 {% block javascripts %}
-    {{ parent() }}
-    <script>
-        function createBackupAction(action) {
-            animateSpinner('add');
+	{{ parent() }}
+	<script>
+		function createBackupAction(action) {
+			animateSpinner('add');
 
-            let form = $('#f_download');
-            form.find('input[name="action"]').val(action);
-            form.find('input[name="multireqtoken"]').val('{{ formToken(false) }}');
-            form.submit();
-        }
+			let form = $('#f_download');
+			form.find('input[name="action"]').val(action);
+			form.find('input[name="multireqtoken"]').val('{{ formToken(false) }}');
+			form.submit();
+		}
 
-        function deleteBackupAction(db_file, zip_file) {
-            let form = $('#f_delete_backup');
-            form.find('input[name="db_file"]').val(db_file);
-            form.find('input[name="zip_file"]').val(zip_file);
-            form.submit();
-        }
+		function deleteBackupAction(db_file, zip_file) {
+			let form = $('#f_delete_backup');
+			form.find('input[name="db_file"]').val(db_file);
+			form.find('input[name="zip_file"]').val(zip_file);
+			form.submit();
+		}
 
-        function downloadBackupAction(action, file_name = '') {
-            let form = $('#f_download');
-            form.find('input[name="action"]').val(action);
-            form.find('input[name="file_name"]').val(file_name);
-            form.submit();
-        }
+		function downloadBackupAction(action, file_name = '') {
+			let form = $('#f_download');
+			form.find('input[name="action"]').val(action);
+			form.find('input[name="file_name"]').val(file_name);
+			form.submit();
+		}
 
-        $(document).ready(function () {
-            $('#f_restore_db').on('submit', function (e) {
-                animateSpinner('add');
-                let fileInput = $(this).find('input[type=file]');
-                let fileSize = fileInput[0].files[0].size; // tamaño del archivo en bytes
+		$(document).ready(function () {
+			$('#f_restore_db').on('submit', function (e) {
+			animateSpinner('add');
+			let fileInput = $(this).find('input[type=file]');
+			let fileSize = fileInput[0].files[0].size; // tamaño del archivo en bytes
 
-                if (fileSize > {{ fsc.getMaxFileUpload() }} * 1024 * 1024) { // MB
-                    e.preventDefault();
-                    alert('{{ trans('backup-file-too-big', {'%size%': fsc.getMaxFileUpload()}) }}');
-                    animateSpinner('remove');
-                }
-            });
-            $('#f_restore_files').on('submit', function (e) {
-                animateSpinner('add');
-                let fileInput = $(this).find('input[type=file]');
-                let fileSize = fileInput[0].files[0].size; // tamaño del archivo en bytes
+			if (fileSize > {{ fsc.getMaxFileUpload() }} * 1024 * 1024) { // MB
+				e.preventDefault();
+				alert('{{ trans('backup-file-too-big', {'%size%': fsc.getMaxFileUpload()}) }}');
+				animateSpinner('remove');
+			}
+		});
 
-                if (fileSize > {{ fsc.getMaxFileUpload() }} * 1024 * 1024) { // MB
-                    e.preventDefault();
-                    alert('{{ trans('backup-file-too-big', {'%size%': fsc.getMaxFileUpload()}) }}');
-                    animateSpinner('remove');
-                }
-            });
-        });
-    </script>
+		$('#f_restore_files').on('submit', function (e) {
+			animateSpinner('add');
+			let fileInput = $(this).find('input[type=file]');
+			let fileSize = fileInput[0].files[0].size; // tamaño del archivo en bytes
+
+			if (fileSize > {{ fsc.getMaxFileUpload() }} * 1024 * 1024) { // MB
+				e.preventDefault();
+				alert('{{ trans('backup-file-too-big', {'%size%': fsc.getMaxFileUpload()}) }}');
+				animateSpinner('remove');
+			}
+		});
+	});
+	</script>
 {% endblock %}

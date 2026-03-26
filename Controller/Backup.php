@@ -26,6 +26,8 @@ use FacturaScripts\Core\Cache;
 use FacturaScripts\Core\Response;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\UploadedFile;
+use FacturaScripts\Dinamic\Lib\BackupFile;
+use FacturaScripts\Dinamic\Lib\BackupSQL;
 use FacturaScripts\Dinamic\Model\User;
 use PDO;
 use RecursiveDirectoryIterator;
@@ -39,761 +41,662 @@ use ZipArchive;
  */
 class Backup extends Controller
 {
-    /** @var string */
-    public $active_tab = 'download';
-
-    /** @var array */
-    public $backup_list = [];
-
-    /** @var string */
-    public $current_charset = '';
-
-    /** @var string */
-    public $cron_frequency = '';
-
-    /** @var int */
-    public $cron_hour = 3;
-
-    /** @var int */
-    public $cron_weekly_day = 1;
-
-    /** @var int */
-    public $cron_monthly_day = 1;
-
-    /** @var string */
-    public $db_file_name = '';
-
-    /** @var string */
-    public $zip_file_name = '';
-
-    /**
-     * Return the max file size that can be uploaded.
-     *
-     * @return float
-     */
-    public function getMaxFileUpload()
-    {
-        return UploadedFile::getMaxFilesize() / 1024 / 1024;
-    }
-
-    public function getPageData(): array
-    {
-        $data = parent::getPageData();
-        $data['menu'] = 'admin';
-        $data['title'] = 'backup';
-        $data['icon'] = 'fa-solid fa-download';
-        return $data;
-    }
-
-    /**
-     * Runs the controller's private logic.
-     *
-     * @param Response $response
-     * @param User $user
-     * @param ControllerPermissions $permissions
-     */
-    public function privateCore(&$response, $user, $permissions)
-    {
-        parent::privateCore($response, $user, $permissions);
-
-        $this->active_tab = $this->request->get('active_tab', 'download');
-        $this->current_charset = Tools::config('mysql_charset', 'utf8');
-
-        // cargamos la configuración del cron
-        $this->cron_frequency = Tools::settings('backup', 'frequency', '1 week');
-        $this->cron_hour = Tools::settings('backup', 'hour', 3);
-        $this->cron_weekly_day = Tools::settings('backup', 'weekly_day', 1);
-        $this->cron_monthly_day = Tools::settings('backup', 'monthly_day', 1);
-
-        $action = $this->request->get('action', '');
-        switch ($action) {
-            case 'create-sql-file':
-                $this->createSqlAction();
-                break;
-
-            case 'create-zip-file':
-                $this->createZipAction();
-                break;
-
-            case 'delete-backup':
-                $this->deleteBackupAction();
-                break;
-
-            case 'download-sql-file':
-                $this->downloadSqlAction();
-                break;
-
-            case 'download-zip-file':
-                $this->downloadZipAction();
-                break;
-
-            case 'restore-backup':
-                $this->restoreBackupAction();
-                break;
-
-            case 'restore-files':
-                $this->restoreFilesAction();
-                break;
-
-            case 'switch-db-charset':
-                $this->switchDbCharsetAction();
-                break;
-
-            default:
-                $this->defaultChecks();
-                break;
-        }
-
-        $this->loadBackupFiles();
-    }
-
-    private function checkDbBackupCharset(string $filePath): bool
-    {
-        // abrimos el archivo
-        $file = fopen($filePath, 'r');
-        if (false === $file) {
-            return false;
-        }
-
-        // leemos las primeras 1000 líneas y recopilamos todos los charsets encontrados
-        $line = 0;
-        $foundCharsets = [];
-        while ($line < 1000) {
-            $line++;
-            $buffer = fgets($file);
-            if (false === $buffer) {
-                break;
-            }
-
-            foreach (['utf8', 'utf8mb3', 'utf8mb4'] as $charset) {
-                if (strpos($buffer, ' CHARSET=' . $charset . ' ') !== false) {
-                    // utf8mb3 es lo mismo que utf8
-                    $normalizedCharset = $charset === 'utf8mb3' ? 'utf8' : $charset;
-                    $foundCharsets[$normalizedCharset] = true;
-                }
-            }
-        }
-        fclose($file);
-
-        // si no encontramos ningún charset, asumimos que es compatible
-        if (empty($foundCharsets)) {
-            return true;
-        }
-
-        // convertimos el array a lista de charsets únicos
-        $uniqueCharsets = array_keys($foundCharsets);
-
-        // comparamos con el charset del config.php
-        $configCharset = Tools::config('mysql_charset', 'utf8');
-
-        // si hay múltiples charsets mezclados, mostramos un aviso
-        if (count($uniqueCharsets) > 1) {
-            Tools::log()->warning('backup-charset-mixed-warning', [
-                '%charsets%' => implode(', ', $uniqueCharsets),
-                '%config-charset%' => $configCharset
-            ]);
-            Tools::log()->info('backup-use-fixer-plugin');
-        }
-
-        // verificamos si el charset configurado está entre los encontrados
-        if (in_array($configCharset, $uniqueCharsets)) {
-            return true;
-        }
-
-        // si solo hay un charset y no coincide, mostramos error
-        Tools::log()->error('backup-charset-error', [
-            '%db-charset%' => implode(', ', $uniqueCharsets),
-            '%config-charset%' => $configCharset
-        ]);
-        return false;
-    }
-
-    protected function createSqlAction(): void
-    {
-        if (Tools::config('db_type') != 'mysql') {
-            Tools::log()->error('mysql-support-only');
-            return;
-        } elseif ($this->permissions->allowExport === false) {
-            Tools::log()->error('not-allowed-export');
-            return;
-        } elseif (false === $this->validateFormToken()) {
-            return;
-        }
-
-        // si el puerto no es el puerto por defecto, mostramos un aviso
-        if (Tools::config('db_port') != 3306) {
-            Tools::log()->warning('backup-port-warning', [
-                '%port%' => Tools::config('db_port')
-            ]);
-        }
-
-        if (false === extension_loaded('pdo_mysql')) {
-            Tools::log()->error('pdo-mysql-support-only');
-            return;
-        }
-
-        if (false === extension_loaded('zip')) {
-            Tools::log()->error('php-extension-not-found', ['%extension%' => 'zip']);
-            return;
-        }
-
-        $folder = Tools::folder('MyFiles', 'Backups');
-        if (false === Tools::folderCheckOrCreate($folder)) {
-            Tools::log()->error('folder-create-error');
-            return;
-        }
-
-        $file_name = date('Y-m-d_H-i-s') . '.sql';
-
-        //definimos la configurcion de la base de datos y el directorio de backup
-        $db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
-        $backupDir = Tools::folder('MyFiles', 'Backups');
-
-        $backup = new MySQLBackup($db, $backupDir);
-
-        //exportamos la base de datos a un archivo y le cambiamos el nombre para que tenga el formato correcto
-        $file = $backup->backup();
-        rename($file, Tools::folder('MyFiles', 'Backups', $file_name));
-
-        $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
-        if (false === file_exists($file_path)) {
-            Tools::log()->error('record-save-error');
-            return;
-        }
-
-        // si el tamaño es 0, mostramos un aviso
-        if (filesize($file_path) === 0) {
-            Tools::log()->warning('backup-empty-warning');
-        }
-
-        $this->db_file_name = $file_name;
-        Tools::log()->notice('file-ready-to-download');
-    }
-
-    protected function createZipAction(): void
-    {
-        if ($this->permissions->allowExport === false) {
-            Tools::log()->error('not-allowed-export');
-            return;
-        } elseif (false === $this->validateFormToken()) {
-            return;
-        }
-
-        $folder = Tools::folder('MyFiles', 'Backups');
-        if (false === Tools::folderCheckOrCreate($folder)) {
-            Tools::log()->error('folder-create-error');
-            return;
-        }
-
-        // creamos un archivo
-        $file_path = Tools::folder('MyFiles', 'Backups', date('Y-m-d_H-i-s') . '.zip');
-        if (false === $this->zipFolder($file_path)) {
-            Tools::log()->error('record-save-error');
-            return;
-        }
-
-        // si el tamaño es 0, mostramos un aviso
-        if (filesize($file_path) === 0) {
-            Tools::log()->warning('backup-empty-warning');
-        }
-
-        $this->zip_file_name = basename($file_path);
-        Tools::log()->notice('file-ready-to-download');
-    }
-
-    private function defaultChecks(): void
-    {
-        // obtenemos el límite de memoria
-        $memoryMb = $this->getMemoryLimitMb();
-        if ($memoryMb === -1) {
-            return;
-        }
-
-        // calculamos el tamaño de la carpeta FS_FOLDER
-        $folderSize = 0;
-        $files = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator(FS_FOLDER),
-            RecursiveIteratorIterator::LEAVES_ONLY
-        );
-        foreach ($files as $file) {
-            if ($file->isDir()) {
-                continue;
-            }
-
-            $folderSize += $file->getSize();
-        }
-        $folderMb = round($folderSize / 1024 / 1024, 2);
-
-        // si la carpeta FS_FOLDER ocupa más que el límite de memoria, mostramos un aviso
-        if ($folderMb >= $memoryMb) {
-            Tools::log()->warning('backup-memory-warning', [
-                '%size%' => $folderMb,
-                '%memory%' => $memoryMb
-            ]);
-        }
-    }
-
-    private function deleteBackupAction(): void
-    {
-        if ($this->permissions->allowDelete === false) {
-            Tools::log()->error('not-allowed-delete');
-            return;
-        } elseif (false === $this->validateFormToken()) {
-            return;
-        }
-
-        $db_file = $this->request->request->get('db_file', '');
-        $zip_file = $this->request->request->get('zip_file', '');
-        if (empty($db_file) && empty($zip_file)) {
-            Tools::log()->warning('no-file-received');
-            return;
-        }
-
-        if ($db_file) {
-            $db_file_path = Tools::folder('MyFiles', 'Backups', $db_file);
-            if (false === file_exists($db_file_path)) {
-                Tools::log()->error('file-not-found');
-                return;
-            }
-
-            unlink($db_file_path);
-        }
-
-        if ($zip_file) {
-            $zip_file_path = Tools::folder('MyFiles', 'Backups', $zip_file);
-            if (false === file_exists($zip_file_path)) {
-                Tools::log()->error('file-not-found');
-                return;
-            }
-
-            unlink($zip_file_path);
-        }
-
-        Tools::log()->notice('record-deleted-correctly');
-    }
-
-    private function downloadSqlAction(): void
-    {
-        if ($this->permissions->allowExport === false) {
-            Tools::log()->error('not-allowed-export');
-            return;
-        } elseif (false === $this->validateFormToken()) {
-            return;
-        }
-
-        $file_name = $this->request->request->get('file_name', '');
-        if (empty($file_name)) {
-            Tools::log()->warning('no-file-received');
-            return;
-        }
-
-        $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
-        if (false === file_exists($file_path)) {
-            Tools::log()->error('file-not-found');
-            return;
-        }
-
-        $this->setTemplate(false);
-        $this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
-    }
-
-    private function downloadZipAction(): void
-    {
-        if ($this->permissions->allowExport === false) {
-            Tools::log()->error('not-allowed-export');
-            return;
-        } elseif (false === $this->validateFormToken()) {
-            return;
-        }
-
-        $file_name = $this->request->request->get('file_name', '');
-        if (empty($file_name)) {
-            Tools::log()->warning('no-file-received');
-            return;
-        }
-
-        $file_path = Tools::folder('MyFiles', 'Backups', $file_name);
-        if (false === file_exists($file_path)) {
-            Tools::log()->error('file-not-found');
-            return;
-        }
-
-        $this->setTemplate(false);
-        $this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
-    }
-
-    private function fixSqlFile(string $filePath): string
-    {
-        // abrimos el archivo
-        $file = fopen($filePath, 'r');
-        if (false === $file) {
-            return '';
-        }
-
-        // creamos un archivo temporal
-        $newFilePath = Tools::folder('temp.sql');
-        $newFile = fopen($newFilePath, 'w');
-        if (false === $newFile) {
-            fclose($file);
-            return $filePath;
-        }
-
-        // leemos el archivo línea a línea
-        while ($buffer = fgets($file)) {
-            $line = trim($buffer);
-
-            // si la línea es SET time_zone, nos aseguramos de que termine en ;
-            if (strpos($line, 'SET time_zone') === 0 && substr($line, -1) !== ';') {
-                $line .= ';';
-            }
-
-            // añadimos la línea al archivo temporal
-            fwrite($newFile, $line . PHP_EOL);
-        }
-
-        // cerramos los archivos
-        fclose($file);
-        fclose($newFile);
-
-        return $newFilePath;
-    }
-
-    private function getMemoryLimitMb(): int
-    {
-        $memoryLimit = ini_get('memory_limit');
-        if ($memoryLimit === '-1') {
-            return -1;
-        }
-
-        switch (substr($memoryLimit, -1)) {
-            case 'G':
-                return substr($memoryLimit, 0, -1) * 1024;
-
-            case 'M':
-                return substr($memoryLimit, 0, -1);
-
-            case 'K':
-                return round(substr($memoryLimit, 0, -1) / 1024, 2);
-
-            default:
-                return (int)$memoryLimit;
-        }
-    }
-
-    protected function loadBackupFiles(): void
-    {
-        // buscamos todos los archivos sql de la carpeta MyFiles/Backups
-        $folder = Tools::folder('MyFiles', 'Backups');
-        if (false === Tools::folderCheckOrCreate($folder)) {
-            Tools::log()->error('folder-create-error');
-            return;
-        }
-
-        foreach (Tools::folderScan($folder) as $file) {
-            // comprobamos si es un archivo .sql
-            if (substr($file, -4) === '.sql') {
-                $key = substr($file, 0, strpos($file, '_'));
-                if (!isset($this->backup_list[$key])) {
-                    $this->backup_list[$key] = [
-                        'date' => $key,
-                        'sql_file' => $file,
-                        'sql_size' => filesize(Tools::folder('MyFiles', 'Backups', $file)),
-                        'zip_file' => '',
-                        'zip_size' => 0
-                    ];
-                    continue;
-                }
-
-                $this->backup_list[$key]['sql_file'] = $file;
-                $this->backup_list[$key]['sql_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
-                continue;
-            }
-
-            // comprobamos si es un archivo .zip
-            if (substr($file, -4) === '.zip') {
-                $key = substr($file, 0, strpos($file, '_'));
-                if (!isset($this->backup_list[$key])) {
-                    $this->backup_list[$key] = [
-                        'date' => $key,
-                        'sql_file' => '',
-                        'sql_size' => 0,
-                        'zip_file' => $file,
-                        'zip_size' => filesize(Tools::folder('MyFiles', 'Backups', $file))
-                    ];
-                    continue;
-                }
-
-                $this->backup_list[$key]['zip_file'] = $file;
-                $this->backup_list[$key]['zip_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
-            }
-        }
-    }
-
-    private function moveFiles(): void
-    {
-        // si existe la carpeta Plugins, copiamos los archivos a la carpeta correspondiente
-        if (is_dir(Tools::folder('zip_backup', 'Plugins'))) {
-            foreach (Tools::folderScan(Tools::folder('zip_backup', 'Plugins')) as $file) {
-                $dest = Tools::folder('Plugins', $file);
-                if (file_exists($dest)) {
-                    continue;
-                }
-
-                $src = Tools::folder('zip_backup', 'Plugins', $file);
-                if (is_dir($src)) {
-                    Tools::folderCopy($src, $dest);
-                }
-            }
-        }
-
-        // si existe la carpeta MyFiles, copiamos los archivos a la carpeta correspondiente
-        if (is_dir(Tools::folder('zip_backup', 'MyFiles'))) {
-            foreach (Tools::folderScan(Tools::folder('zip_backup', 'MyFiles')) as $file) {
-                $dest = Tools::folder('MyFiles', $file);
-                if (file_exists($dest)) {
-                    continue;
-                }
-
-                $src = Tools::folder('zip_backup', 'MyFiles', $file);
-                if (is_dir($src)) {
-                    Tools::folderCopy($src, $dest);
-                }
-            }
-        } else {
-            // no existe la carpeta MyFiles en el xip, así que copiamos los archivos a la carpeta MyFiles
-            foreach (Tools::folderScan(Tools::folder('zip_backup')) as $file) {
-                $dest = Tools::folder('MyFiles', $file);
-                if (file_exists($dest)) {
-                    continue;
-                }
-
-                $src = Tools::folder('zip_backup', $file);
-                if (is_dir($src)) {
-                    Tools::folderCopy($src, $dest);
-                }
-            }
-        }
-    }
-
-    private function restoreBackupAction(): void
-    {
-        if (false === $this->validateFormToken()) {
-            return;
-        } elseif ($this->permissions->allowImport === false) {
-            Tools::log()->error('not-allowed-import');
-            return;
-        }
-
-        $dbFile = $this->request->files->get('db_file');
-        if (empty($dbFile)) {
-            return;
-        }
-
-        // si el archivo es .sql.gz, lo convertimos a .sql
-        if (substr($dbFile->getClientOriginalName(), -7) === '.sql.gz') {
-            $sqlFile = $this->unzipDatabase($dbFile->getPathname());
-        } else {
-            $sqlFile = $this->fixSqlFile($dbFile->getPathname());
-        }
-
-        if (empty($sqlFile)) {
-            Tools::log()->error('no-file-received');
-            return;
-        }
-
-        // comprobamos si el charset en el backup es el mismo que en el config.php
-        if (false === $this->checkDbBackupCharset($sqlFile)) {
-            unlink($sqlFile);
-            return;
-        }
-
-        // eliminamos todas las tablas
-        $this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
-        foreach ($this->dataBase->getTables() as $table) {
-            $this->dataBase->exec('DROP TABLE ' . $table);
-        }
-        $this->dataBase->close();
-
-        // importamos el backup
-        $db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
-        $backup = new MySQLBackup($db);
-
-        $restore = $backup->restore($sqlFile);
-        if (true !== $restore) {
-            Tools::log()->error('record-save-error');
-            $this->dataBase->connect();
-            Cache::clear();
-            unlink($sqlFile);
-            return;
-        }
-
-        Tools::log()->notice('record-updated-correctly');
-        $this->dataBase->connect();
-        Cache::clear();
-        unlink($sqlFile);
-
-        // eliminamos las cookies
-        setcookie('fsNick', '', time() - 3600, Tools::config('route', '/'));
-        setcookie('fsLogkey', '', time() - 3600, Tools::config('route', '/'));
-
-        $this->redirect('login');
-    }
-
-    private function restoreFilesAction(): void
-    {
-        if (false === $this->validateFormToken()) {
-            return;
-        } elseif ($this->permissions->allowImport === false) {
-            Tools::log()->error('not-allowed-import');
-            return;
-        }
-
-        $zipFile = $this->request->files->get('zip_file');
-        if (empty($zipFile)) {
-            return;
-        }
-
-        $zip = new ZipArchive();
-        if (false === $zip->open($zipFile->getPathname())) {
-            Tools::log()->error('zip error');
-            return;
-        }
-
-        // si ya existe la carpeta zip_backup, la eliminamos
-        Tools::folderDelete(Tools::folder('zip_backup'));
-
-        // extraemos el contenido dentro de la carpeta zip_backup
-        if (false === $zip->extractTo(Tools::folder('zip_backup'))) {
-            Tools::log()->error('zip extract error');
-            return;
-        }
-        $zip->close();
-
-        $this->moveFiles();
-
-        // eliminamos la carpeta zip_backup
-        Tools::folderDelete(Tools::folder('zip_backup'));
-
-        Tools::log()->notice('record-updated-correctly');
-    }
-
-    private function switchDbCharsetAction(): void
-    {
-        if (false === $this->validateFormToken()) {
-            return;
-        } elseif ($this->permissions->allowUpdate === false) {
-            Tools::log()->error('not-allowed-update');
-            return;
-        }
-
-        // leemos el archivo config.php
-        $configFile = file_get_contents(Tools::folder('config.php'));
-        if (empty($configFile)) {
-            Tools::log()->error('config-file-error');
-            return;
-        }
-
-        $configCharset = Tools::config('mysql_charset');
-        $configCollate = Tools::config('mysql_collate');
-        if (empty($configCharset) || empty($configCollate)) {
-            Tools::log()->error('config-mysql-charset-error', [
-                '%config-charset%' => $configCharset,
-                '%config-collate%' => $configCollate
-            ]);
-            return;
-        }
-
-        $selectedCharset = $this->request->query->get('charset');
-        switch ($selectedCharset) {
-            case 'utf8':
-                $configFile = str_replace("'" . $configCharset . "'", "'utf8'", $configFile);
-                $configFile = str_replace("'" . $configCollate . "'", "'utf8_bin'", $configFile);
-                break;
-
-            case 'utf8mb4':
-                $configFile = str_replace("'" . $configCharset . "'", "'utf8mb4'", $configFile);
-                $configFile = str_replace("'" . $configCollate . "'", "'utf8mb4_unicode_520_ci'", $configFile);
-                break;
-
-            default:
-                Tools::log()->error('config-mysql-charset-error', [
-                    '%config-charset%' => $configCharset,
-                    '%config-collate%' => $configCollate,
-                    '%selected-charset%' => $selectedCharset
-                ]);
-                return;
-        }
-
-        // guardamos el archivo
-        if (false === file_put_contents(Tools::folder('config.php'), $configFile)) {
-            Tools::log()->error('record-save-error');
-            return;
-        }
-
-        Tools::log()->notice('record-updated-correctly');
-    }
-
-    private function unzipDatabase(string $gzFilePath): string
-    {
-        // abrimos el archivo .sql.gz
-        $gzFile = gzopen($gzFilePath, 'r');
-        if (false === $gzFile) {
-            Tools::log()->error('record-save-error');
-            return '';
-        }
-
-        // creamos el archivo .sql
-        $name = substr($gzFilePath, 0, -3);
-        $sqlFile = fopen($name, 'w');
-        if (false === $sqlFile) {
-            gzclose($gzFile);
-            Tools::log()->error('record-save-error');
-            return '';
-        }
-
-        // copiamos el contenido del archivo .sql.gz al archivo .sql
-        while ($buffer = gzread($gzFile, 4096)) {
-            fwrite($sqlFile, $buffer);
-        }
-
-        // cerramos los archivos
-        gzclose($gzFile);
-        fclose($sqlFile);
-
-        return $name;
-    }
-
-    private function zipFolder(string $fileName): bool
-    {
-        $zip = new ZipArchive();
-        if (false === $zip->open($fileName, ZIPARCHIVE::CREATE | ZipArchive::OVERWRITE)) {
-            return false;
-        }
-
-        $files = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator(FS_FOLDER),
-            RecursiveIteratorIterator::LEAVES_ONLY
-        );
-
-        foreach ($files as $name => $file) {
-            if ($file->isDir() || substr($name, -4) === '.zip') {
-                continue;
-            }
-
-            $filePath = $file->getRealPath();
-            $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', substr($filePath, strlen(FS_FOLDER) + 1));
-
-            // excluimos algunas carpetas
-            $exclude = ['MyFiles/Backups', 'MyFiles/Cache', 'MyFiles/Tmp', 'Dinamic'];
-            foreach ($exclude as $folder) {
-                if (strpos($relativePath, $folder) === 0) {
-                    continue 2;
-                }
-            }
-
-            $zip->addFile($filePath, $relativePath);
-        }
-
-        return $zip->close();
-    }
+	/** @var string */
+	public $active_tab = 'download';
+
+	/** @var array */
+	public $backup_list = [];
+
+	/** @var string */
+	public $current_charset = '';
+
+	/** @var string */
+	public $cron_frequency = '';
+
+	/** @var int */
+	public $cron_hour = 3;
+
+	/** @var int */
+	public $cron_weekly_day = 1;
+
+	/** @var int */
+	public $cron_monthly_day = 1;
+
+	/**
+	 * Return the max file size that can be uploaded.
+	 *
+	 * @return float
+	 */
+	public function getMaxFileUpload()
+	{
+		return UploadedFile::getMaxFilesize() / 1024 / 1024;
+	}
+
+	public function getPageData(): array
+	{
+		$data = parent::getPageData();
+		$data['menu'] = 'admin';
+		$data['title'] = 'backup';
+		$data['icon'] = 'fa-solid fa-download';
+		return $data;
+	}
+
+	/**
+	 * Runs the controller's private logic.
+	 *
+	 * @param Response $response
+	 * @param User $user
+	 * @param ControllerPermissions $permissions
+	 */
+	public function privateCore(&$response, $user, $permissions)
+	{
+		parent::privateCore($response, $user, $permissions);
+
+		$this->active_tab = $this->request->input('active_tab', 'download');
+		$this->current_charset = Tools::config('mysql_charset', 'utf8');
+
+		// cargamos la configuración del cron
+		$this->cron_frequency = Tools::settings('backup', 'frequency', '1 week');
+		$this->cron_hour = Tools::settings('backup', 'hour', 3);
+		$this->cron_weekly_day = Tools::settings('backup', 'weekly_day', 1);
+		$this->cron_monthly_day = Tools::settings('backup', 'monthly_day', 1);
+
+		$action = $this->request->input('action', '');
+		switch ($action) {
+			case 'create-sql-file':
+				$this->createSqlAction();
+				break;
+
+			case 'create-zip-file':
+				$this->createZipAction();
+				break;
+
+			case 'delete-backup':
+				$this->deleteBackupAction();
+				break;
+
+			case 'download-sql-file':
+				$this->downloadSqlAction();
+				break;
+
+			case 'download-zip-file':
+				$this->downloadZipAction();
+				break;
+
+			case 'restore-backup':
+				$this->restoreBackupAction();
+				break;
+
+			case 'restore-files':
+				$this->restoreFilesAction();
+				break;
+
+			case 'switch-db-charset':
+				$this->switchDbCharsetAction();
+				break;
+
+			default:
+				$this->defaultChecks();
+				break;
+		}
+
+		$this->loadBackupFiles();
+	}
+
+	private function checkDbBackupCharset(string $filePath): bool
+	{
+		// abrimos el archivo
+		$file = fopen($filePath, 'r');
+		if (false === $file) {
+			return false;
+		}
+
+		// leemos las primeras 1000 líneas y recopilamos todos los charsets encontrados
+		$line = 0;
+		$foundCharsets = [];
+		while ($line < 1000) {
+			$line++;
+			$buffer = fgets($file);
+			if (false === $buffer) {
+				break;
+			}
+
+			foreach (['utf8', 'utf8mb3', 'utf8mb4'] as $charset) {
+				if (strpos($buffer, ' CHARSET=' . $charset . ' ') !== false) {
+					// utf8mb3 es lo mismo que utf8
+					$normalizedCharset = $charset === 'utf8mb3' ? 'utf8' : $charset;
+					$foundCharsets[$normalizedCharset] = true;
+				}
+			}
+		}
+		fclose($file);
+
+		// si no encontramos ningún charset, asumimos que es compatible
+		if (empty($foundCharsets)) {
+			return true;
+		}
+
+		// convertimos el array a lista de charsets únicos
+		$uniqueCharsets = array_keys($foundCharsets);
+
+		// comparamos con el charset del config.php
+		$configCharset = Tools::config('mysql_charset', 'utf8');
+
+		// si hay múltiples charsets mezclados, mostramos un aviso
+		if (count($uniqueCharsets) > 1) {
+			Tools::log()->warning('backup-charset-mixed-warning', [
+				'%charsets%' => implode(', ', $uniqueCharsets),
+				'%config-charset%' => $configCharset
+			]);
+			Tools::log()->info('backup-use-fixer-plugin');
+		}
+
+		// verificamos si el charset configurado está entre los encontrados
+		if (in_array($configCharset, $uniqueCharsets)) {
+			return true;
+		}
+
+		// si solo hay un charset y no coincide, mostramos error
+		Tools::log()->error('backup-charset-error', [
+			'%db-charset%' => implode(', ', $uniqueCharsets),
+			'%config-charset%' => $configCharset
+		]);
+		return false;
+	}
+
+	protected function createSqlAction(): void
+	{
+		if ($this->permissions->allowExport === false) {
+			Tools::log()->error('not-allowed-export');
+			return;
+		} elseif (false === $this->validateFormToken()) {
+			return;
+		}
+
+		if (BackupSQL::generate()) {
+			Tools::log()->notice('file-ready-to-download');
+			return;
+		}
+
+		Tools::log()->error('record-save-error');
+	}
+
+	protected function createZipAction(): void
+	{
+		if ($this->permissions->allowExport === false) {
+			Tools::log()->error('not-allowed-export');
+			return;
+		} elseif (false === $this->validateFormToken()) {
+			return;
+		}
+
+		if (BackupFile::generate()) {
+			Tools::log()->notice('file-ready-to-download');
+			return;
+		}
+
+		Tools::log()->error('record-save-error');
+	}
+
+	private function defaultChecks(): void
+	{
+		// obtenemos el límite de memoria
+		$memoryMb = $this->getMemoryLimitMb();
+		if ($memoryMb === -1) {
+			return;
+		}
+
+		// calculamos el tamaño de la carpeta FS_FOLDER
+		$folderSize = 0;
+		$files = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator(FS_FOLDER),
+			RecursiveIteratorIterator::LEAVES_ONLY
+		);
+		foreach ($files as $file) {
+			if ($file->isDir()) {
+				continue;
+			}
+
+			$folderSize += $file->getSize();
+		}
+		$folderMb = round($folderSize / 1024 / 1024, 2);
+
+		// si la carpeta FS_FOLDER ocupa más que el límite de memoria, mostramos un aviso
+		if ($folderMb >= $memoryMb) {
+			Tools::log()->warning('backup-memory-warning', [
+				'%size%' => $folderMb,
+				'%memory%' => $memoryMb
+			]);
+		}
+	}
+
+	private function deleteBackupAction(): void
+	{
+		if ($this->permissions->allowDelete === false) {
+			Tools::log()->error('not-allowed-delete');
+			return;
+		} elseif (false === $this->validateFormToken()) {
+			return;
+		}
+
+		$db_file = $this->request->request->get('db_file', '');
+		$zip_file = $this->request->request->get('zip_file', '');
+		if (empty($db_file) && empty($zip_file)) {
+			Tools::log()->warning('no-file-received');
+			return;
+		}
+
+		if ($db_file) {
+			$db_file_path = Tools::folder('MyFiles', 'Backups', $db_file);
+			if (false === file_exists($db_file_path)) {
+				Tools::log()->error('file-not-found');
+				return;
+			}
+
+			unlink($db_file_path);
+		}
+
+		if ($zip_file) {
+			$zip_file_path = Tools::folder('MyFiles', 'Backups', $zip_file);
+			if (false === file_exists($zip_file_path)) {
+				Tools::log()->error('file-not-found');
+				return;
+			}
+
+			unlink($zip_file_path);
+		}
+
+		Tools::log()->notice('record-deleted-correctly');
+	}
+
+	private function downloadSqlAction(): void
+	{
+		if ($this->permissions->allowExport === false) {
+			Tools::log()->error('not-allowed-export');
+			return;
+		} elseif (false === $this->validateFormToken()) {
+			return;
+		}
+
+		$file_name = $this->request->request->get('file_name', '');
+		if (empty($file_name)) {
+			Tools::log()->warning('no-file-received');
+			return;
+		}
+
+		$file_path = Tools::folder('MyFiles', 'Backups', $file_name);
+		if (false === file_exists($file_path)) {
+			Tools::log()->error('file-not-found');
+			return;
+		}
+
+		$this->setTemplate(false);
+		$this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
+	}
+
+	private function downloadZipAction(): void
+	{
+		if ($this->permissions->allowExport === false) {
+			Tools::log()->error('not-allowed-export');
+			return;
+		} elseif (false === $this->validateFormToken()) {
+			return;
+		}
+
+		$file_name = $this->request->request->get('file_name', '');
+		if (empty($file_name)) {
+			Tools::log()->warning('no-file-received');
+			return;
+		}
+
+		$file_path = Tools::folder('MyFiles', 'Backups', $file_name);
+		if (false === file_exists($file_path)) {
+			Tools::log()->error('file-not-found');
+			return;
+		}
+
+		$this->setTemplate(false);
+		$this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
+	}
+
+	private function fixSqlFile(string $filePath): string
+	{
+		// abrimos el archivo
+		$file = fopen($filePath, 'r');
+		if (false === $file) {
+			return '';
+		}
+
+		// creamos un archivo temporal
+		$newFilePath = Tools::folder('temp.sql');
+		$newFile = fopen($newFilePath, 'w');
+		if (false === $newFile) {
+			fclose($file);
+			return $filePath;
+		}
+
+		// leemos el archivo línea a línea
+		while ($buffer = fgets($file)) {
+			$line = trim($buffer);
+
+			// si la línea es SET time_zone, nos aseguramos de que termine en ;
+			if (strpos($line, 'SET time_zone') === 0 && substr($line, -1) !== ';') {
+				$line .= ';';
+			}
+
+			// añadimos la línea al archivo temporal
+			fwrite($newFile, $line . PHP_EOL);
+		}
+
+		// cerramos los archivos
+		fclose($file);
+		fclose($newFile);
+
+		return $newFilePath;
+	}
+
+	private function getMemoryLimitMb(): int
+	{
+		$memoryLimit = ini_get('memory_limit');
+		if ($memoryLimit === '-1') {
+			return -1;
+		}
+
+		switch (substr($memoryLimit, -1)) {
+			case 'G':
+				return substr($memoryLimit, 0, -1) * 1024;
+
+			case 'M':
+				return substr($memoryLimit, 0, -1);
+
+			case 'K':
+				return round(substr($memoryLimit, 0, -1) / 1024, 2);
+
+			default:
+				return (int)$memoryLimit;
+		}
+	}
+
+	protected function loadBackupFiles(): void
+	{
+		// buscamos todos los archivos sql de la carpeta MyFiles/Backups
+		$folder = Tools::folder('MyFiles', 'Backups');
+		if (false === Tools::folderCheckOrCreate($folder)) {
+			Tools::log()->error('folder-create-error');
+			return;
+		}
+
+		foreach (Tools::folderScan($folder) as $file) {
+			// comprobamos si es un archivo .sql
+			if (substr($file, -4) === '.sql') {
+				$key = substr($file, 0, strpos($file, '_'));
+				if (!isset($this->backup_list[$key])) {
+					$this->backup_list[$key] = [
+						'date' => $key,
+						'sql_file' => $file,
+						'sql_size' => filesize(Tools::folder('MyFiles', 'Backups', $file)),
+						'zip_file' => '',
+						'zip_size' => 0
+					];
+					continue;
+				}
+
+				$this->backup_list[$key]['sql_file'] = $file;
+				$this->backup_list[$key]['sql_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+				continue;
+			}
+
+			// comprobamos si es un archivo .zip
+			if (substr($file, -4) === '.zip') {
+				$key = substr($file, 0, strpos($file, '_'));
+				if (!isset($this->backup_list[$key])) {
+					$this->backup_list[$key] = [
+						'date' => $key,
+						'sql_file' => '',
+						'sql_size' => 0,
+						'zip_file' => $file,
+						'zip_size' => filesize(Tools::folder('MyFiles', 'Backups', $file))
+					];
+					continue;
+				}
+
+				$this->backup_list[$key]['zip_file'] = $file;
+				$this->backup_list[$key]['zip_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+			}
+		}
+	}
+
+	private function moveFiles(): void
+	{
+		// si existe la carpeta Plugins, copiamos los archivos a la carpeta correspondiente
+		if (is_dir(Tools::folder('zip_backup', 'Plugins'))) {
+			foreach (Tools::folderScan(Tools::folder('zip_backup', 'Plugins')) as $file) {
+				$dest = Tools::folder('Plugins', $file);
+				if (file_exists($dest)) {
+					continue;
+				}
+
+				$src = Tools::folder('zip_backup', 'Plugins', $file);
+				if (is_dir($src)) {
+					Tools::folderCopy($src, $dest);
+				}
+			}
+		}
+
+		// si existe la carpeta MyFiles, copiamos los archivos a la carpeta correspondiente
+		if (is_dir(Tools::folder('zip_backup', 'MyFiles'))) {
+			foreach (Tools::folderScan(Tools::folder('zip_backup', 'MyFiles')) as $file) {
+				$dest = Tools::folder('MyFiles', $file);
+				if (file_exists($dest)) {
+					continue;
+				}
+
+				$src = Tools::folder('zip_backup', 'MyFiles', $file);
+				if (is_dir($src)) {
+					Tools::folderCopy($src, $dest);
+				}
+			}
+		} else {
+			// no existe la carpeta MyFiles en el xip, así que copiamos los archivos a la carpeta MyFiles
+			foreach (Tools::folderScan(Tools::folder('zip_backup')) as $file) {
+				$dest = Tools::folder('MyFiles', $file);
+				if (file_exists($dest)) {
+					continue;
+				}
+
+				$src = Tools::folder('zip_backup', $file);
+				if (is_dir($src)) {
+					Tools::folderCopy($src, $dest);
+				}
+			}
+		}
+	}
+
+	private function restoreBackupAction(): void
+	{
+		if (false === $this->validateFormToken()) {
+			return;
+		} elseif ($this->permissions->allowImport === false) {
+			Tools::log()->error('not-allowed-import');
+			return;
+		}
+
+		$dbFile = $this->request->files->get('db_file');
+		if (empty($dbFile)) {
+			return;
+		}
+
+		// si el archivo es .sql.gz, lo convertimos a .sql
+		if (substr($dbFile->getClientOriginalName(), -7) === '.sql.gz') {
+			$sqlFile = $this->unzipDatabase($dbFile->getPathname());
+		} else {
+			$sqlFile = $this->fixSqlFile($dbFile->getPathname());
+		}
+
+		if (empty($sqlFile)) {
+			Tools::log()->error('no-file-received');
+			return;
+		}
+
+		// comprobamos si el charset en el backup es el mismo que en el config.php
+		if (false === $this->checkDbBackupCharset($sqlFile)) {
+			unlink($sqlFile);
+			return;
+		}
+
+		// eliminamos todas las tablas
+		$this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
+		foreach ($this->dataBase->getTables() as $table) {
+			$this->dataBase->exec('DROP TABLE ' . $table);
+		}
+		$this->dataBase->close();
+
+		// importamos el backup
+		$db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
+		$backup = new MySQLBackup($db);
+
+		$restore = $backup->restore($sqlFile);
+		if (true !== $restore) {
+			Tools::log()->error('record-save-error');
+			$this->dataBase->connect();
+			Cache::clear();
+			unlink($sqlFile);
+			return;
+		}
+
+		Tools::log()->notice('record-updated-correctly');
+		$this->dataBase->connect();
+		Cache::clear();
+		unlink($sqlFile);
+
+		// eliminamos las cookies
+		setcookie('fsNick', '', time() - 3600, Tools::config('route', '/'));
+		setcookie('fsLogkey', '', time() - 3600, Tools::config('route', '/'));
+
+		$this->redirect('login');
+	}
+
+	private function restoreFilesAction(): void
+	{
+		if (false === $this->validateFormToken()) {
+			return;
+		} elseif ($this->permissions->allowImport === false) {
+			Tools::log()->error('not-allowed-import');
+			return;
+		}
+
+		$zipFile = $this->request->files->get('zip_file');
+		if (empty($zipFile)) {
+			return;
+		}
+
+		$zip = new ZipArchive();
+		if (false === $zip->open($zipFile->getPathname())) {
+			Tools::log()->error('zip error');
+			return;
+		}
+
+		// si ya existe la carpeta zip_backup, la eliminamos
+		Tools::folderDelete(Tools::folder('zip_backup'));
+
+		// extraemos el contenido dentro de la carpeta zip_backup
+		if (false === $zip->extractTo(Tools::folder('zip_backup'))) {
+			Tools::log()->error('zip extract error');
+			return;
+		}
+		$zip->close();
+
+		$this->moveFiles();
+
+		// eliminamos la carpeta zip_backup
+		Tools::folderDelete(Tools::folder('zip_backup'));
+
+		Tools::log()->notice('record-updated-correctly');
+	}
+
+	private function switchDbCharsetAction(): void
+	{
+		if (false === $this->validateFormToken()) {
+			return;
+		} elseif ($this->permissions->allowUpdate === false) {
+			Tools::log()->error('not-allowed-update');
+			return;
+		}
+
+		// leemos el archivo config.php
+		$configFile = file_get_contents(Tools::folder('config.php'));
+		if (empty($configFile)) {
+			Tools::log()->error('config-file-error');
+			return;
+		}
+
+		$configCharset = Tools::config('mysql_charset');
+		$configCollate = Tools::config('mysql_collate');
+		if (empty($configCharset) || empty($configCollate)) {
+			Tools::log()->error('config-mysql-charset-error', [
+				'%config-charset%' => $configCharset,
+				'%config-collate%' => $configCollate
+			]);
+			return;
+		}
+
+		$selectedCharset = $this->request->query->get('charset');
+		switch ($selectedCharset) {
+			case 'utf8':
+				$configFile = str_replace("'" . $configCharset . "'", "'utf8'", $configFile);
+				$configFile = str_replace("'" . $configCollate . "'", "'utf8_bin'", $configFile);
+				break;
+
+			case 'utf8mb4':
+				$configFile = str_replace("'" . $configCharset . "'", "'utf8mb4'", $configFile);
+				$configFile = str_replace("'" . $configCollate . "'", "'utf8mb4_unicode_520_ci'", $configFile);
+				break;
+
+			default:
+				Tools::log()->error('config-mysql-charset-error', [
+					'%config-charset%' => $configCharset,
+					'%config-collate%' => $configCollate,
+					'%selected-charset%' => $selectedCharset
+				]);
+				return;
+		}
+
+		// guardamos el archivo
+		if (false === file_put_contents(Tools::folder('config.php'), $configFile)) {
+			Tools::log()->error('record-save-error');
+			return;
+		}
+
+		Tools::log()->notice('record-updated-correctly');
+	}
+
+	private function unzipDatabase(string $gzFilePath): string
+	{
+		// abrimos el archivo .sql.gz
+		$gzFile = gzopen($gzFilePath, 'r');
+		if (false === $gzFile) {
+			Tools::log()->error('record-save-error');
+			return '';
+		}
+
+		// creamos el archivo .sql
+		$name = substr($gzFilePath, 0, -3);
+		$sqlFile = fopen($name, 'w');
+		if (false === $sqlFile) {
+			gzclose($gzFile);
+			Tools::log()->error('record-save-error');
+			return '';
+		}
+
+		// copiamos el contenido del archivo .sql.gz al archivo .sql
+		while ($buffer = gzread($gzFile, 4096)) {
+			fwrite($sqlFile, $buffer);
+		}
+
+		// cerramos los archivos
+		gzclose($gzFile);
+		fclose($sqlFile);
+
+		return $name;
+	}
 }
