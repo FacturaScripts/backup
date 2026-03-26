@@ -544,6 +544,45 @@ class Backup extends Controller
 			return;
 		}
 
+		// validamos los campos de gestión del admin antes de restaurar
+		$adminAction = $this->request->request->get('admin_action', 'none');
+		if ($adminAction === 'update') {
+			$newAdminPassword = $this->request->request->get('new_admin_password', '');
+			$newAdminPassword2 = $this->request->request->get('new_admin_password2', '');
+			if ($newAdminPassword !== $newAdminPassword2) {
+				Tools::log()->error('restore-admin-passwords-mismatch');
+				unlink($sqlFile);
+				return;
+			}
+
+			if (strlen($newAdminPassword) < 8 || !preg_match('/[0-9]/', $newAdminPassword) || !preg_match('/[a-zA-Z]/', $newAdminPassword)) {
+				Tools::log()->error('restore-admin-password-weak');
+				unlink($sqlFile);
+				return;
+			}
+		} elseif ($adminAction === 'create') {
+			$newAdminNick = trim($this->request->request->get('new_admin_nick', ''));
+			$newAdminCreatePassword = $this->request->request->get('new_admin_create_password', '');
+			$newAdminCreatePassword2 = $this->request->request->get('new_admin_create_password2', '');
+			if (empty($newAdminNick)) {
+				Tools::log()->error('restore-admin-nick-required');
+				unlink($sqlFile);
+				return;
+			}
+
+			if ($newAdminCreatePassword !== $newAdminCreatePassword2) {
+				Tools::log()->error('restore-admin-passwords-mismatch');
+				unlink($sqlFile);
+				return;
+			}
+
+			if (strlen($newAdminCreatePassword) < 8 || !preg_match('/[0-9]/', $newAdminCreatePassword) || !preg_match('/[a-zA-Z]/', $newAdminCreatePassword)) {
+				Tools::log()->error('restore-admin-password-weak');
+				unlink($sqlFile);
+				return;
+			}
+		}
+
 		// eliminamos todas las tablas
 		$this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
 		foreach ($this->dataBase->getTables() as $table) {
@@ -569,11 +608,85 @@ class Backup extends Controller
 		Cache::clear();
 		unlink($sqlFile);
 
+		// gestionamos el acceso del admin tras la restauración
+		if ($adminAction === 'update') {
+			$newAdminPassword = $this->request->request->get('new_admin_password', '');
+			$disable2fa = (bool)$this->request->request->get('disable_2fa', false);
+			$this->updateAdminPasswordAfterRestore($newAdminPassword, $disable2fa);
+		} elseif ($adminAction === 'create') {
+			$newAdminNick = trim($this->request->request->get('new_admin_nick', ''));
+			$newAdminCreatePassword = $this->request->request->get('new_admin_create_password', '');
+			$this->createAdminUserAfterRestore($newAdminNick, $newAdminCreatePassword);
+		}
+
 		// eliminamos las cookies
 		setcookie('fsNick', '', time() - 3600, Tools::config('route', '/'));
 		setcookie('fsLogkey', '', time() - 3600, Tools::config('route', '/'));
 
 		$this->redirect('login');
+	}
+
+	private function createAdminUserAfterRestore(string $nick, string $password): void
+	{
+		$user = new User();
+		$user->nick = $nick;
+		$user->admin = true;
+		$user->enabled = true;
+
+		if (false === $user->setPassword($password)) {
+			Tools::log()->error('restore-admin-password-weak');
+			return;
+		}
+
+		if (false === $user->save()) {
+			Tools::log()->error('record-save-error');
+			return;
+		}
+
+		Tools::log()->notice('restore-admin-user-created', ['%nick%' => $nick]);
+	}
+
+	private function updateAdminPasswordAfterRestore(string $newPassword, bool $disable2fa = false): void
+	{
+		// buscamos primero el usuario con nick 'admin'
+		$user = new User();
+		if (false === $user->load('admin')) {
+			// si no existe, buscamos cualquier usuario con permisos de administrador
+			$users = $user->all();
+			$adminUser = null;
+			foreach ($users as $u) {
+				if ($u->admin) {
+					$adminUser = $u;
+					break;
+				}
+			}
+
+			if (null === $adminUser) {
+				Tools::log()->warning('restore-no-admin-found');
+				return;
+			}
+
+			$user = $adminUser;
+		}
+
+		// actualizamos la contraseña
+		if (false === $user->setPassword($newPassword)) {
+			Tools::log()->error('restore-admin-password-weak');
+			return;
+		}
+
+		// desactivamos la autenticación en dos pasos si se ha solicitado
+		if ($disable2fa) {
+			$user->two_factor_enabled = false;
+			$user->two_factor_secret_key = null;
+		}
+
+		if (false === $user->save()) {
+			Tools::log()->error('record-save-error');
+			return;
+		}
+
+		Tools::log()->notice('restore-admin-password-updated');
 	}
 
 	private function restoreFilesAction(): void
