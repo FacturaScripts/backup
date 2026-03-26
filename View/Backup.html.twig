@@ -75,68 +75,76 @@
 									</h3>
 								</div>
 								<div class="table-responsive">
-									<table class="table table-hover table-striped mb-0">
-										<thead>
-											<tr>
-												<th>{{ trans('database') }}</th>
-												<th class="text-end">{{ trans('size') }}</th>
-												<th>{{ trans('files') }}</th>
-												<th class="text-end">{{ trans('size') }}</th>
-												<th class="text-end">{{ trans('date') }}</th>
-												<th></th>
-											</tr>
-										</thead>
+									<table class="table table-hover mb-0">
 										<tbody>
-											{% for backup in fsc.backup_list %}
+											{% if fsc.backup_list is empty %}
 												<tr>
-													<td>
-														{% if backup.sql_file %}
-															<a href="#" onclick="downloadBackupAction('download-sql-file','{{ backup.sql_file }}')">
-																{{ backup.sql_file }}
-															</a>
-														{% else %}
-															-
-														{% endif %}
-													</td>
-													<td class="text-end">
-														{% if backup.sql_file %}
-															{{ bytes(backup.sql_size) }}
-														{% else %}
-															-
-														{% endif %}
-													</td>
-													<td>
-														{% if backup.zip_file %}
-															<a href="#" onclick="downloadBackupAction('download-zip-file','{{ backup.zip_file }}')">
-																{{ backup.zip_file }}
-															</a>
-														{% else %}
-															-
-														{% endif %}
-													</td>
-													<td class="text-end">
-														{% if backup.zip_file %}
-															{{ bytes(backup.zip_size) }}
-														{% else %}
-															-
-														{% endif %}
-													</td>
-													<td class="text-end">{{ backup.date }}</td>
-													<td class="text-end">
-														{% if backup.sql_file or backup.zip_file %}
-															<a href="#" onclick="deleteBackupAction('{{ backup.sql_file }}','{{ backup.zip_file }}')" title="{{ trans('delete') }}">
-																<i class="fa-solid fa-trash-alt text-danger"></i>
-															</a>
-														{% endif %}
-													</td>
-												</tr>
-											{% else %}
-												<tr>
-													<td colspan="6" class="table-warning">
+													<td colspan="5" class="table-warning">
 														{{ trans('no-data') }}
 													</td>
 												</tr>
-											{% endfor %}
+											{% else %}
+												{% for day, entries in fsc.backup_list %}
+													<tr class="table-dark">
+														<th colspan="5" class="py-2">
+															<i class="fa-solid fa-calendar-day me-2"></i>
+															{{ day[6:2] }}/{{ day[4:2] }}/{{ day[0:4] }}
+														</th>
+													</tr>
+													<tr class="table-secondary">
+														<th>{{ trans('database') }}</th>
+														<th class="text-end">{{ trans('size') }}</th>
+														<th>{{ trans('files') }}</th>
+														<th class="text-end">{{ trans('size') }}</th>
+														<th></th>
+													</tr>
+													{% for backup in entries %}
+														<tr>
+															<td>
+																{% if backup.sql_file %}
+																	<a href="#" onclick="downloadBackupAction('download-sql-file','{{ backup.sql_file }}')">
+																		<i class="fa-solid fa-database me-1"></i>
+																		{{ backup.sql_file }}
+																	</a>
+																{% else %}
+																	-
+																{% endif %}
+															</td>
+															<td class="text-end">
+																{% if backup.sql_file %}
+																	{{ bytes(backup.sql_size) }}
+																{% else %}
+																	-
+																{% endif %}
+															</td>
+															<td>
+																{% if backup.zip_file %}
+																	<a href="#" onclick="downloadBackupAction('download-zip-file','{{ backup.zip_file }}')">
+																		<i class="fa-solid fa-box-archive me-1"></i>
+																		{{ backup.zip_file }}
+																	</a>
+																{% else %}
+																	-
+																{% endif %}
+															</td>
+															<td class="text-end">
+																{% if backup.zip_file %}
+																	{{ bytes(backup.zip_size) }}
+																{% else %}
+																	-
+																{% endif %}
+															</td>
+															<td class="text-end">
+																{% if backup.sql_file or backup.zip_file %}
+																	<a href="#" onclick="deleteBackupAction('{{ backup.sql_file }}','{{ backup.zip_file }}')" title="{{ trans('delete') }}">
+																		<i class="fa-solid fa-trash-alt text-danger"></i>
+																	</a>
+																{% endif %}
+															</td>
+														</tr>
+													{% endfor %}
+												{% endfor %}
+											{% endif %}
 										</tbody>
 									</table>
 								</div>

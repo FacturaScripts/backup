@@ -419,51 +419,60 @@ class Backup extends Controller
 
 	protected function loadBackupFiles(): void
 	{
-		// buscamos todos los archivos sql de la carpeta MyFiles/Backups
+		// buscamos todos los archivos de la carpeta MyFiles/Backups
 		$folder = Tools::folder('MyFiles', 'Backups');
 		if (false === Tools::folderCheckOrCreate($folder)) {
 			Tools::log()->error('folder-create-error');
 			return;
 		}
 
-		foreach (Tools::folderScan($folder) as $file) {
-			// comprobamos si es un archivo .sql
-			if (substr($file, -4) === '.sql') {
-				$key = substr($file, 0, strpos($file, '_'));
-				if (!isset($this->backup_list[$key])) {
-					$this->backup_list[$key] = [
-						'date' => $key,
-						'sql_file' => $file,
-						'sql_size' => filesize(Tools::folder('MyFiles', 'Backups', $file)),
-						'zip_file' => '',
-						'zip_size' => 0
-					];
-					continue;
-				}
+		$grouped = [];
 
-				$this->backup_list[$key]['sql_file'] = $file;
-				$this->backup_list[$key]['sql_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+		foreach (Tools::folderScan($folder) as $file) {
+			// la clave del día es la parte antes del primer guion bajo (YYYYMMDD)
+			$underscorePos = strpos($file, '_');
+			if (false === $underscorePos) {
 				continue;
 			}
+			$dayKey = substr($file, 0, $underscorePos);
 
-			// comprobamos si es un archivo .zip
-			if (substr($file, -4) === '.zip') {
-				$key = substr($file, 0, strpos($file, '_'));
-				if (!isset($this->backup_list[$key])) {
-					$this->backup_list[$key] = [
-						'date' => $key,
-						'sql_file' => '',
-						'sql_size' => 0,
-						'zip_file' => $file,
-						'zip_size' => filesize(Tools::folder('MyFiles', 'Backups', $file))
-					];
-					continue;
-				}
+			// la clave del archivo es el nombre sin extensión (para emparejar sql y zip del mismo momento)
+			$dotPos = strpos($file, '.');
+			$fileKey = false !== $dotPos ? substr($file, 0, $dotPos) : $file;
 
-				$this->backup_list[$key]['zip_file'] = $file;
-				$this->backup_list[$key]['zip_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+			if (!isset($grouped[$dayKey])) {
+				$grouped[$dayKey] = [];
+			}
+
+			if (!isset($grouped[$dayKey][$fileKey])) {
+				$grouped[$dayKey][$fileKey] = [
+					'datetime' => $fileKey,
+					'sql_file' => '',
+					'sql_size' => 0,
+					'zip_file' => '',
+					'zip_size' => 0,
+				];
+			}
+
+			if (substr($file, -4) === '.sql') {
+				$grouped[$dayKey][$fileKey]['sql_file'] = $file;
+				$grouped[$dayKey][$fileKey]['sql_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+			} elseif (substr($file, -4) === '.zip') {
+				$grouped[$dayKey][$fileKey]['zip_file'] = $file;
+				$grouped[$dayKey][$fileKey]['zip_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
 			}
 		}
+
+		// ordenamos los días de más reciente a más antiguo
+		krsort($grouped);
+
+		// ordenamos las entradas de cada día de más reciente a más antigua y re-indexamos
+		foreach ($grouped as $day => $entries) {
+			krsort($entries);
+			$grouped[$day] = array_values($entries);
+		}
+
+		$this->backup_list = $grouped;
 	}
 
 	private function moveFiles(): void
