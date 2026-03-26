@@ -168,6 +168,56 @@
 									<p class="card-text text-muted">
 										{{ trans('help-server-accepts-filesize', {'%size%': fsc.getMaxFileUpload()}) }}
 									</p>
+									<hr/>
+									<p class="card-text">
+										<i class="fa-solid fa-user-shield me-1"></i>
+										<strong>{{ trans('restore-admin-access') }}</strong>
+										— {{ trans('restore-admin-access-p') }}
+									</p>
+									<div class="mb-3">
+										<div class="form-check">
+											<input class="form-check-input" type="radio" name="admin_action" id="admin_action_none" value="none" checked onchange="toggleAdminFields()"/>
+											<label class="form-check-label" for="admin_action_none">{{ trans('restore-admin-no-changes') }}</label>
+										</div>
+										<div class="form-check">
+											<input class="form-check-input" type="radio" name="admin_action" id="admin_action_update" value="update" onchange="toggleAdminFields()"/>
+											<label class="form-check-label" for="admin_action_update">{{ trans('restore-admin-update-password') }}</label>
+										</div>
+										<div class="form-check">
+											<input class="form-check-input" type="radio" name="admin_action" id="admin_action_create" value="create" onchange="toggleAdminFields()"/>
+											<label class="form-check-label" for="admin_action_create">{{ trans('restore-admin-create-user') }}</label>
+										</div>
+									</div>
+									<div id="admin_update_fields" class="row g-3 d-none">
+										<div class="col-md-6">
+											<label for="new_admin_password" class="form-label">{{ trans('new-admin-password') }}</label>
+											<input type="password" name="new_admin_password" id="new_admin_password" class="form-control" autocomplete="new-password" placeholder="••••••••"/>
+										</div>
+										<div class="col-md-6">
+											<label for="new_admin_password2" class="form-label">{{ trans('new-admin-password-confirm') }}</label>
+											<input type="password" name="new_admin_password2" id="new_admin_password2" class="form-control" autocomplete="new-password" placeholder="••••••••"/>
+										</div>
+										<div class="col-12">
+											<div class="form-check">
+												<input class="form-check-input" type="checkbox" name="disable_2fa" id="disable_2fa" value="1"/>
+												<label class="form-check-label" for="disable_2fa">{{ trans('restore-admin-disable-2fa') }}</label>
+											</div>
+										</div>
+									</div>
+									<div id="admin_create_fields" class="row g-3 d-none">
+										<div class="col-md-4">
+											<label for="new_admin_nick" class="form-label">{{ trans('nick') }}</label>
+											<input type="text" name="new_admin_nick" id="new_admin_nick" class="form-control" autocomplete="off" placeholder="admin2"/>
+										</div>
+										<div class="col-md-4">
+											<label for="new_admin_create_password" class="form-label">{{ trans('password') }}</label>
+											<input type="password" name="new_admin_create_password" id="new_admin_create_password" class="form-control" autocomplete="new-password" placeholder="••••••••"/>
+										</div>
+										<div class="col-md-4">
+											<label for="new_admin_create_password2" class="form-label">{{ trans('new-admin-password-confirm') }}</label>
+											<input type="password" name="new_admin_create_password2" id="new_admin_create_password2" class="form-control" autocomplete="new-password" placeholder="••••••••"/>
+										</div>
+									</div>
 								</div>
 								<div class="card-footer p-2">
 									<button type="submit" class="btn btn-warning btn-spin-action">
@@ -317,6 +367,12 @@
 {% block javascripts %}
 	{{ parent() }}
 	<script>
+		function toggleAdminFields() {
+			let action = $('input[name="admin_action"]:checked').val();
+			$('#admin_update_fields').toggleClass('d-none', action !== 'update');
+			$('#admin_create_fields').toggleClass('d-none', action !== 'create');
+		}
+
 		function createBackupAction(action) {
 			animateSpinner('add');
 
