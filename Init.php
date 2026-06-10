@@ -21,7 +21,6 @@ namespace FacturaScripts\Plugins\Backup;
 
 use FacturaScripts\Core\Template\InitClass;
 use FacturaScripts\Core\Tools;
-use FacturaScripts\Dinamic\Lib\AssetManager;
 
 /**
  * Composer autoload.
