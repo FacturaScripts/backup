@@ -1,0 +1,337 @@
+name: Crear Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout completo del repositorio
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Actualizar traducciones
+        run: |
+          if [ -f "Translation/Updater.php" ]; then
+            echo "Ejecutando Updater.php..."
+            php Translation/Updater.php
+            if [ -n "$(git status --porcelain)" ]; then
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add Translation/*.json
+              git commit -m "actualizadas traducciones"
+              git push
+              echo "Commit de traducciones creado y subido."
+            else
+              echo "Sin cambios en traducciones."
+            fi
+          else
+            echo "No existe Translation/Updater.php, se omite este paso."
+          fi
+
+      - name: Detectar modo de operación
+        id: mode
+        run: |
+          LAST_TAG=$(gh release list --limit 1 --json tagName \
+            --jq 'if length > 0 then .[0].tagName else "" end' 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "mode=historical" >> "$GITHUB_OUTPUT"
+            echo "No hay releases previas. Se procesará el historial completo."
+          else
+            echo "mode=current" >> "$GITHUB_OUTPUT"
+            echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+            echo "Hay releases previas. Última: $LAST_TAG"
+          fi
+
+      # ─────────────────────────────────────────────────────────────────────────
+      # MODO HISTÓRICO: primer arranque sin ninguna release.
+      # Recorre todos los commits, detecta cada cambio de versión en
+      # facturascripts.ini y crea una release por cada versión encontrada.
+      # ─────────────────────────────────────────────────────────────────────────
+      - name: Procesar historial completo de versiones
+        if: steps.mode.outputs.mode == 'historical'
+        run: |
+          set -euo pipefail
+          PLUGIN_NAME=$(grep '^name' facturascripts.ini | sed "s/name = '//;s/'.*//")
+          echo "Plugin: $PLUGIN_NAME"
+
+          # Todos los commits del repo en orden cronológico (más antiguo primero)
+          mapfile -t ALL_COMMITS < <(git log --reverse --format="%H")
+          echo "Total de commits: ${#ALL_COMMITS[@]}"
+
+          # ── Detectar versiones y el último commit de cada una ──
+          declare -A version_last_commit
+          declare -a version_order
+          PREV_VERSION=""
+
+          for commit in "${ALL_COMMITS[@]}"; do
+            version=$(git show "${commit}:facturascripts.ini" 2>/dev/null \
+              | grep '^version' | sed 's/version = //' | tr -d ' ')
+            [ -z "$version" ] && continue
+
+            if [ "$version" != "$PREV_VERSION" ]; then
+              local_found=0
+              for v in "${version_order[@]:-}"; do
+                [ "$v" = "$version" ] && local_found=1 && break
+              done
+              [ "$local_found" -eq 0 ] && version_order+=("$version")
+              PREV_VERSION="$version"
+            fi
+            # Actualizar siempre el último commit conocido de esta versión
+            version_last_commit["$version"]="$commit"
+          done
+
+          echo "Versiones detectadas (en orden): ${version_order[*]}"
+
+          # ── Crear una release por cada versión ──
+          PREV_COMMIT=""
+
+          for ver in "${version_order[@]}"; do
+            commit="${version_last_commit[$ver]}"
+            tag="v${ver}"
+
+            # Saltar si ya existe la release
+            if gh release view "$tag" &>/dev/null 2>&1; then
+              echo "Release $tag ya existe, saltando."
+              PREV_COMMIT="$commit"
+              continue
+            fi
+
+            echo ""
+            echo "══════════════════════════════════════════"
+            echo "  Creando release $tag  (commit ${commit:0:8})"
+            echo "══════════════════════════════════════════"
+
+            # Extraer el código tal como estaba en ese commit
+            SAFE_VER="${ver//[^a-zA-Z0-9._-]/_}"
+            BUILD_DIR="/tmp/build_${SAFE_VER}"
+            rm -rf "$BUILD_DIR"
+            mkdir -p "${BUILD_DIR}/${PLUGIN_NAME}"
+            git archive "$commit" | tar -x -C "${BUILD_DIR}/${PLUGIN_NAME}"
+
+            # Instalar dependencias composer si las había en ese commit
+            if [ -f "${BUILD_DIR}/${PLUGIN_NAME}/composer.json" ]; then
+              echo "Instalando composer para $ver..."
+              (cd "${BUILD_DIR}/${PLUGIN_NAME}" && composer install --no-dev --optimize-autoloader)
+            fi
+
+            # Compilar assets npm si los había en ese commit
+            if [ -f "${BUILD_DIR}/${PLUGIN_NAME}/package.json" ]; then
+              HAS_BUILD=$(node -e "const p=require('${BUILD_DIR}/${PLUGIN_NAME}/package.json'); process.exit(p.scripts&&p.scripts.build?0:1);" 2>/dev/null && echo "yes" || echo "no")
+              if [ "$HAS_BUILD" = "yes" ]; then
+                echo "Compilando assets npm para $ver..."
+                if [ -f "${BUILD_DIR}/${PLUGIN_NAME}/package-lock.json" ]; then
+                  (cd "${BUILD_DIR}/${PLUGIN_NAME}" && npm ci && npm run build)
+                else
+                  (cd "${BUILD_DIR}/${PLUGIN_NAME}" && npm install && npm run build)
+                fi
+              else
+                echo "package.json sin script 'build', se omite compilación npm para $ver."
+              fi
+            fi
+
+            # Limpiar archivos que no deben distribuirse
+            rm -rf "${BUILD_DIR}/${PLUGIN_NAME}/.git"
+            rm -rf "${BUILD_DIR}/${PLUGIN_NAME}/.github"
+            rm -rf "${BUILD_DIR}/${PLUGIN_NAME}/Test"
+            rm -f  "${BUILD_DIR}/${PLUGIN_NAME}/Translation/Updater.php"
+
+            # Crear el ZIP
+            ZIP_FILE="${GITHUB_WORKSPACE}/${PLUGIN_NAME}_${ver}.zip"
+            (cd "$BUILD_DIR" && zip -r "$ZIP_FILE" "${PLUGIN_NAME}/")
+            echo "ZIP creado: ${PLUGIN_NAME}_${ver}.zip"
+
+            # ── Generar changelog ──
+            if [ -n "$PREV_COMMIT" ]; then
+              COMMITS=$(git log --pretty=format:"%s" "${PREV_COMMIT}..${commit}" 2>/dev/null || true)
+            else
+              COMMITS=$(git log --pretty=format:"%s" "$commit" 2>/dev/null || true)
+            fi
+
+            NEW_FEATURES=""
+            FIXES=""
+
+            while IFS= read -r msg; do
+              [ -z "$msg" ] && continue
+              echo "$msg" | grep -qiE "^actualizadas? traducciones?$" && continue
+              echo "$msg" | grep -qiE "^versi[oó]n [0-9]" && continue
+
+              if echo "$msg" | grep -qiE "corregid|correcci[oó]n|fix|bug|error|arreglad|solucionad"; then
+                FIXES="${FIXES}\n- ${msg}"
+              else
+                NEW_FEATURES="${NEW_FEATURES}\n- ${msg}"
+              fi
+            done <<< "$COMMITS"
+
+            BODY="## Versión ${ver}\n"
+            [ -n "$NEW_FEATURES" ] && BODY="${BODY}\n### ✨ Funcionalidades nuevas\n${NEW_FEATURES}\n"
+            [ -n "$FIXES" ]        && BODY="${BODY}\n### 🐛 Correcciones\n${FIXES}\n"
+            [ -z "$NEW_FEATURES" ] && [ -z "$FIXES" ] && BODY="${BODY}\n_Sin cambios registrados._\n"
+
+            NOTES_FILE="/tmp/notes_${SAFE_VER}.md"
+            printf '%b' "$BODY" > "$NOTES_FILE"
+
+            # Publicar la release anclada al commit correcto
+            gh release create "$tag" \
+              --target "$commit" \
+              --title "Versión ${ver}" \
+              --notes-file "$NOTES_FILE" \
+              "$ZIP_FILE"
+
+            echo "Release $tag creada."
+
+            # Limpiar temporales de esta iteración
+            rm -rf "$BUILD_DIR"
+            rm -f "$ZIP_FILE" "$NOTES_FILE"
+
+            PREV_COMMIT="$commit"
+          done
+
+          echo ""
+          echo "Proceso histórico completado."
+
+      # ─────────────────────────────────────────────────────────────────────────
+      # MODO NORMAL: ya existen releases — solo crear la versión actual si cambió
+      # ─────────────────────────────────────────────────────────────────────────
+      - name: Detectar versión actual y última release
+        id: versions
+        if: steps.mode.outputs.mode == 'current'
+        env:
+          LAST_TAG_INPUT: ${{ steps.mode.outputs.last_tag }}
+        run: |
+          CURRENT_VERSION=$(grep '^version' facturascripts.ini | sed 's/version = //' | tr -d ' ')
+          echo "Versión actual: $CURRENT_VERSION"
+          echo "current_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+
+          LAST_TAG="$LAST_TAG_INPUT"
+          LAST_VERSION=$(echo "$LAST_TAG" | sed 's/^v//')
+          echo "Última release: ${LAST_TAG}"
+          echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+          echo "last_version=$LAST_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$CURRENT_VERSION" = "$LAST_VERSION" ]; then
+            echo "⚠️  La versión actual ($CURRENT_VERSION) ya tiene release publicada. No se hace nada."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generar changelog
+        id: changelog
+        if: steps.mode.outputs.mode == 'current' && steps.versions.outputs.skip != 'true'
+        env:
+          CURRENT_VERSION: ${{ steps.versions.outputs.current_version }}
+          LAST_TAG: ${{ steps.versions.outputs.last_tag }}
+          LAST_VERSION: ${{ steps.versions.outputs.last_version }}
+        run: |
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"%s" "${LAST_TAG}..HEAD")
+          else
+            COMMITS=$(git log --pretty=format:"%s")
+          fi
+
+          NEW_FEATURES=""
+          FIXES=""
+
+          while IFS= read -r msg; do
+            if echo "$msg" | grep -qiE "^actualizadas? traducciones?$"; then continue; fi
+            if echo "$msg" | grep -qiE "^versi[oó]n [0-9]"; then continue; fi
+
+            if echo "$msg" | grep -qiE "corregid|correcci[oó]n|fix|bug|error|arreglad|solucionad"; then
+              FIXES="${FIXES}\n- ${msg}"
+            else
+              NEW_FEATURES="${NEW_FEATURES}\n- ${msg}"
+            fi
+          done <<< "$COMMITS"
+
+          if [ -n "$LAST_VERSION" ]; then
+            HEADER="## Versión ${CURRENT_VERSION} (desde ${LAST_VERSION})"
+          else
+            HEADER="## Versión ${CURRENT_VERSION}"
+          fi
+
+          BODY="${HEADER}\n"
+          [ -n "$NEW_FEATURES" ] && BODY="${BODY}\n### ✨ Funcionalidades nuevas\n${NEW_FEATURES}\n"
+          [ -n "$FIXES" ]        && BODY="${BODY}\n### 🐛 Correcciones\n${FIXES}\n"
+          [ -z "$NEW_FEATURES" ] && [ -z "$FIXES" ] && BODY="${BODY}\n_Sin cambios registrados._\n"
+
+          echo "Changelog generado:"
+          echo -e "$BODY"
+          { echo 'body<<CHANGELOG_EOF'; echo -e "$BODY"; echo 'CHANGELOG_EOF'; } >> "$GITHUB_OUTPUT"
+
+      - name: Instalar dependencias composer
+        if: steps.mode.outputs.mode == 'current' && steps.versions.outputs.skip != 'true'
+        run: |
+          if [ -f "composer.json" ]; then
+            composer install --no-dev --optimize-autoloader
+          else
+            echo "No existe composer.json, se omite."
+          fi
+
+      - name: Compilar assets npm
+        if: steps.mode.outputs.mode == 'current' && steps.versions.outputs.skip != 'true'
+        run: |
+          if [ -f "package.json" ]; then
+            HAS_BUILD=$(node -e "const p=require('./package.json'); process.exit(p.scripts&&p.scripts.build?0:1);" 2>/dev/null && echo "yes" || echo "no")
+            if [ "$HAS_BUILD" = "yes" ]; then
+              if [ -f "package-lock.json" ]; then
+                npm ci && npm run build
+              else
+                npm install && npm run build
+              fi
+            else
+              echo "package.json sin script 'build', se omite compilación npm."
+            fi
+          else
+            echo "No existe package.json, se omite."
+          fi
+
+      - name: Crear ZIP del plugin
+        id: zip
+        if: steps.mode.outputs.mode == 'current' && steps.versions.outputs.skip != 'true'
+        env:
+          CURRENT_VERSION: ${{ steps.versions.outputs.current_version }}
+        run: |
+          PLUGIN_NAME=$(grep '^name' facturascripts.ini | sed "s/name = '//;s/'.*//")
+          ZIP_NAME="${PLUGIN_NAME}_${CURRENT_VERSION}.zip"
+          echo "Creando ${ZIP_NAME}..."
+
+          mkdir -p /tmp/zip_build
+          cp -r . /tmp/zip_build/${PLUGIN_NAME}
+          rm -rf /tmp/zip_build/${PLUGIN_NAME}/.git
+          rm -rf /tmp/zip_build/${PLUGIN_NAME}/.github
+          rm -rf /tmp/zip_build/${PLUGIN_NAME}/Test
+          rm -f  /tmp/zip_build/${PLUGIN_NAME}/Translation/Updater.php
+
+          cd /tmp/zip_build
+          zip -r "${GITHUB_WORKSPACE}/${ZIP_NAME}" "${PLUGIN_NAME}/"
+
+          echo "ZIP creado: ${ZIP_NAME}"
+          echo "zip_path=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Crear Release en GitHub
+        if: steps.mode.outputs.mode == 'current' && steps.versions.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: "v${{ steps.versions.outputs.current_version }}"
+          name: "Versión ${{ steps.versions.outputs.current_version }}"
+          body: ${{ steps.changelog.outputs.body }}
+          files: ${{ steps.zip.outputs.zip_path }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
