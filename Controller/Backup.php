@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of Backup plugin for FacturaScripts
- * Copyright (C) 2021-2025 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2026 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -48,19 +48,19 @@ class Backup extends Controller
 	public $backup_list = [];
 
 	/** @var string */
-	public $current_charset = '';
-
-	/** @var string */
 	public $cron_frequency = '';
 
 	/** @var int */
 	public $cron_hour = 3;
 
 	/** @var int */
-	public $cron_weekly_day = 1;
+	public $cron_monthly_day = 1;
 
 	/** @var int */
-	public $cron_monthly_day = 1;
+	public $cron_weekly_day = 1;
+
+	/** @var string */
+	public $current_charset = '';
 
 	/**
 	 * Return the max file size that can be uploaded.
@@ -202,6 +202,26 @@ class Backup extends Controller
 			'%config-charset%' => $configCharset
 		]);
 		return false;
+	}
+
+	private function createAdminUserAfterRestore(string $nick, string $password): void
+	{
+		$user = new User();
+		$user->nick = $nick;
+		$user->admin = true;
+		$user->enabled = true;
+
+		if (false === $user->setPassword($password)) {
+			Tools::log()->error('restore-admin-password-weak');
+			return;
+		}
+
+		if (false === $user->save()) {
+			Tools::log()->error('record-save-error');
+			return;
+		}
+
+		Tools::log()->notice('restore-admin-user-created', ['%nick%' => $nick]);
 	}
 
 	protected function createSqlAction(): void
@@ -429,6 +449,12 @@ class Backup extends Controller
 		$grouped = [];
 
 		foreach (Tools::folderScan($folder) as $file) {
+			// solo procesamos archivos .zip o .sql, el resto los ignoramos
+			$extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+			if (false === in_array($extension, ['zip', 'sql'], true)) {
+				continue;
+			}
+
 			// la clave del día es la parte antes del primer guion bajo (YYYYMMDD)
 			$underscorePos = strpos($file, '_');
 			if (false === $underscorePos) {
@@ -635,69 +661,6 @@ class Backup extends Controller
 		$this->redirect('login');
 	}
 
-	private function createAdminUserAfterRestore(string $nick, string $password): void
-	{
-		$user = new User();
-		$user->nick = $nick;
-		$user->admin = true;
-		$user->enabled = true;
-
-		if (false === $user->setPassword($password)) {
-			Tools::log()->error('restore-admin-password-weak');
-			return;
-		}
-
-		if (false === $user->save()) {
-			Tools::log()->error('record-save-error');
-			return;
-		}
-
-		Tools::log()->notice('restore-admin-user-created', ['%nick%' => $nick]);
-	}
-
-	private function updateAdminPasswordAfterRestore(string $newPassword, bool $disable2fa = false): void
-	{
-		// buscamos primero el usuario con nick 'admin'
-		$user = new User();
-		if (false === $user->load('admin')) {
-			// si no existe, buscamos cualquier usuario con permisos de administrador
-			$users = $user->all();
-			$adminUser = null;
-			foreach ($users as $u) {
-				if ($u->admin) {
-					$adminUser = $u;
-					break;
-				}
-			}
-
-			if (null === $adminUser) {
-				Tools::log()->warning('restore-no-admin-found');
-				return;
-			}
-
-			$user = $adminUser;
-		}
-
-		// actualizamos la contraseña
-		if (false === $user->setPassword($newPassword)) {
-			Tools::log()->error('restore-admin-password-weak');
-			return;
-		}
-
-		// desactivamos la autenticación en dos pasos si se ha solicitado
-		if ($disable2fa) {
-			$user->two_factor_enabled = false;
-			$user->two_factor_secret_key = null;
-		}
-
-		if (false === $user->save()) {
-			Tools::log()->error('record-save-error');
-			return;
-		}
-
-		Tools::log()->notice('restore-admin-password-updated');
-	}
-
 	private function restoreFilesAction(): void
 	{
 		if (false === $this->validateFormToken()) {
@@ -820,5 +783,48 @@ class Backup extends Controller
 		fclose($sqlFile);
 
 		return $name;
+	}
+
+	private function updateAdminPasswordAfterRestore(string $newPassword, bool $disable2fa = false): void
+	{
+		// buscamos primero el usuario con nick 'admin'
+		$user = new User();
+		if (false === $user->load('admin')) {
+			// si no existe, buscamos cualquier usuario con permisos de administrador
+			$users = $user->all();
+			$adminUser = null;
+			foreach ($users as $u) {
+				if ($u->admin) {
+					$adminUser = $u;
+					break;
+				}
+			}
+
+			if (null === $adminUser) {
+				Tools::log()->warning('restore-no-admin-found');
+				return;
+			}
+
+			$user = $adminUser;
+		}
+
+		// actualizamos la contraseña
+		if (false === $user->setPassword($newPassword)) {
+			Tools::log()->error('restore-admin-password-weak');
+			return;
+		}
+
+		// desactivamos la autenticación en dos pasos si se ha solicitado
+		if ($disable2fa) {
+			$user->two_factor_enabled = false;
+			$user->two_factor_secret_key = null;
+		}
+
+		if (false === $user->save()) {
+			Tools::log()->error('record-save-error');
+			return;
+		}
+
+		Tools::log()->notice('restore-admin-password-updated');
 	}
 }
