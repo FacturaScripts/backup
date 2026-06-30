@@ -93,7 +93,7 @@ class Backup extends Controller
 	{
 		parent::privateCore($response, $user, $permissions);
 
-		$this->active_tab = $this->request->input('active_tab', 'download');
+		$this->active_tab = $this->request->inputOrQuery('active_tab', 'download');
 		$this->current_charset = Tools::config('mysql_charset', 'utf8');
 
 		// cargamos la configuración del cron
@@ -102,7 +102,7 @@ class Backup extends Controller
 		$this->cron_weekly_day = Tools::settings('backup', 'weekly_day', 1);
 		$this->cron_monthly_day = Tools::settings('backup', 'monthly_day', 1);
 
-		$action = $this->request->input('action', '');
+		$action = $this->request->inputOrQuery('action', '');
 		switch ($action) {
 			case 'create-sql-file':
 				$this->createSqlAction();
@@ -760,7 +760,7 @@ class Backup extends Controller
 			return;
 		}
 
-		$selectedCharset = $this->request->query->get('charset');
+		$selectedCharset = $this->request->query('charset');
 		switch ($selectedCharset) {
 			case 'utf8':
 				$configFile = str_replace("'" . $configCharset . "'", "'utf8'", $configFile);
@@ -787,6 +787,7 @@ class Backup extends Controller
 			return;
 		}
 
+		$this->current_charset = $selectedCharset;
 		Tools::log()->notice('record-updated-correctly');
 	}
 
