@@ -646,7 +646,9 @@ class Backup extends Controller
 		// importamos el backup con nuestro propio importador (no la librería vendor,
 		// que parte el SQL por ";\n" y corrompe los valores con HTML/CSS/multilínea)
 		try {
-			$db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
+			$driver = Tools::config('db_type') === 'postgresql' ? 'pgsql' : 'mysql';
+			$dsn = $driver . ':host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name');
+			$db = new PDO($dsn, Tools::config('db_user'), Tools::config('db_pass'));
 			$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 			$restore = BackupSQL::restore($db, $sqlFile);

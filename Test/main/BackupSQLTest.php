@@ -39,6 +39,87 @@ final class BackupSQLTest extends TestCase
     /** @var array<string> */
     private array $filesBeforeTest = [];
 
+    /**
+     * Test de ida y vuelta de copia + restauración propias (BackupSQL::generate / restore).
+     *
+     * ATENCIÓN: este test es destructivo. Replica el flujo real del controlador
+     * (elimina todas las tablas y restaura la copia), por lo que la base de datos
+     * de pruebas se sustituye por el contenido de la copia recién generada.
+     *
+     * Comprueba dos cosas en un solo ciclo:
+     *  - un dato añadido DESPUÉS de la copia desaparece tras restaurar
+     *  - un dato presente en la copia con caracteres "difíciles" (comillas, punto y
+     *    coma, saltos de línea, barra invertida, acentos) sobrevive intacto (valida el escapado)
+     */
+    public function testBackupAndRestoreRoundTrip(): void
+    {
+        if (Tools::config('db_type') !== 'mysql') {
+            $this->markTestSkipped('La copia/restauración SQL solo se valida aquí con MySQL');
+        }
+
+        $database = new DataBase();
+
+        // creamos un país que SÍ estará en la copia y le ponemos un valor con caracteres
+        // especiales mediante SQL crudo (para no pasar por la sanitización del modelo)
+        $keptCode = 'BKK' . strtoupper(substr(md5(uniqid('', true)), 0, 9));
+        $keptCountry = new Pais();
+        $keptCountry->codpais = $keptCode;
+        $keptCountry->nombre = 'temp';
+        $this->assertTrue($keptCountry->save(), 'No se pudo crear el país conservado');
+
+        $tricky = "O'Hara; a\n\"b\" \\ áé 50% fin";
+        $database->exec("UPDATE paises SET nombre = '" . $database->escapeString($tricky)
+            . "' WHERE codpais = '" . $database->escapeString($keptCode) . "'");
+
+        // 1. generamos la copia (incluye el país conservado con el valor difícil)
+        $this->assertTrue(BackupSQL::generate('test'), 'No se pudo generar el backup SQL');
+
+        // localizamos el archivo .sql recién creado
+        $folder = Tools::folder('MyFiles', 'Backups');
+        $filesAfter = glob($folder . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+        $newFiles = array_diff($filesAfter, $this->filesBeforeTest);
+        $this->assertNotEmpty($newFiles, 'No se ha creado ningún archivo .sql');
+        $sqlFile = reset($newFiles);
+
+        // 2. añadimos a la base de datos un dato que NO está en la copia
+        $codpais = 'BK' . strtoupper(substr(md5(uniqid('', true)), 0, 10));
+        $pais = new Pais();
+        $pais->codpais = $codpais;
+        $pais->nombre = 'Backup Restore Test';
+        $this->assertTrue($pais->save(), 'No se pudo crear el país marcador');
+
+        // 3. restauramos la copia replicando el flujo del controlador (drop all + restore)
+        $database->exec('SET FOREIGN_KEY_CHECKS=0');
+        foreach ($database->getTables() as $table) {
+            $database->exec('DROP TABLE ' . $table);
+        }
+        $database->close();
+
+        $restore = false;
+        try {
+            $db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $restore = BackupSQL::restore($db, $sqlFile);
+        } catch (Throwable $e) {
+            $restore = $e->getMessage();
+        } finally {
+            // reconectamos siempre para no dejar la base de datos sin conexión
+            $database->connect();
+            Cache::clear();
+        }
+
+        $this->assertTrue($restore, 'La restauración no finalizó correctamente: ' . (is_string($restore) ? $restore : ''));
+
+        // 4. el dato añadido tras la copia ha desaparecido
+        $after = new Pais();
+        $this->assertFalse($after->loadFromCode($codpais), 'El país marcador debería haber desaparecido tras restaurar la copia');
+
+        // 5. el dato presente en la copia sobrevive con el valor EXACTO (escapado correcto)
+        $kept = new Pais();
+        $this->assertTrue($kept->loadFromCode($keptCode), 'El país conservado debería existir tras restaurar');
+        $this->assertSame($tricky, $kept->nombre, 'El valor con caracteres especiales no se conservó intacto en la copia/restauración');
+    }
+
     public function testGenerateCreatesBackupsFolder(): void
     {
         if (Tools::config('db_type') !== 'mysql') {
@@ -89,66 +170,6 @@ final class BackupSQLTest extends TestCase
 
         $result = BackupSQL::generate('test');
         $this->assertFalse($result);
-    }
-
-    /**
-     * ATENCIÓN: este test es destructivo. Replica el flujo real del controlador
-     * (elimina todas las tablas y restaura la copia), por lo que la base de datos
-     * de pruebas se sustituye por el contenido de la copia recién generada.
-     */
-    public function testRestoreRemovesDataAddedAfterBackup(): void
-    {
-        if (Tools::config('db_type') !== 'mysql') {
-            $this->markTestSkipped('La restauración SQL solo funciona con MySQL');
-        }
-
-        // 1. generamos una copia de seguridad de la base de datos
-        $this->assertTrue(BackupSQL::generate('test'), 'No se pudo generar el backup SQL');
-
-        // localizamos el archivo .sql recién creado
-        $folder = Tools::folder('MyFiles', 'Backups');
-        $filesAfter = glob($folder . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-        $newFiles = array_diff($filesAfter, $this->filesBeforeTest);
-        $this->assertNotEmpty($newFiles, 'No se ha creado ningún archivo .sql');
-        $sqlFile = reset($newFiles);
-
-        // 2. añadimos a la base de datos un dato que NO está en la copia
-        $codpais = 'BK' . strtoupper(substr(md5(uniqid('', true)), 0, 10));
-        $pais = new Pais();
-        $pais->codpais = $codpais;
-        $pais->nombre = 'Backup Restore Test';
-        $this->assertTrue($pais->save(), 'No se pudo crear el país marcador');
-
-        // confirmamos que el dato existe antes de restaurar
-        $before = new Pais();
-        $this->assertTrue($before->loadFromCode($codpais), 'El país marcador debería existir antes de restaurar');
-
-        // 3. restauramos la copia replicando el flujo del controlador (drop all + restore)
-        $database = new DataBase();
-        $database->exec('SET FOREIGN_KEY_CHECKS=0');
-        foreach ($database->getTables() as $table) {
-            $database->exec('DROP TABLE ' . $table);
-        }
-        $database->close();
-
-        $restore = false;
-        try {
-            $db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
-            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $restore = BackupSQL::restore($db, $sqlFile);
-        } catch (Throwable $e) {
-            $restore = $e->getMessage();
-        } finally {
-            // reconectamos siempre para no dejar la base de datos sin conexión
-            $database->connect();
-            Cache::clear();
-        }
-
-        $this->assertTrue($restore, 'La restauración no finalizó correctamente: ' . (is_string($restore) ? $restore : ''));
-
-        // 4. comprobamos que el dato añadido tras la copia ha desaparecido
-        $after = new Pais();
-        $this->assertFalse($after->loadFromCode($codpais), 'El país marcador debería haber desaparecido tras restaurar la copia');
     }
 
     protected function setUp(): void
