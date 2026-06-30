@@ -627,7 +627,7 @@ class Backup extends Controller
 
 		// importamos el backup
 		$db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
-		$backup = new MySQLBackup($db);
+		$backup = new MySQLBackup($db, Tools::folder('MyFiles', 'Backups'));
 
 		$restore = $backup->restore($sqlFile);
 		if (true !== $restore) {
