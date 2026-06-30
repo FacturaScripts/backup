@@ -15,7 +15,6 @@
   "require": {
     "ext-mbstring": "*",
     "ext-zip": "*",
-    "julio101290/mysql-backup": "^1.0",
     "maennchen/zipstream-php": "^2.4"
   }
 }

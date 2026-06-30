@@ -19,10 +19,10 @@
 
 namespace FacturaScripts\Plugins\Backup\Controller;
 
-use DatabaseBackupManager\MySQLBackup;
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\ControllerPermissions;
 use FacturaScripts\Core\Cache;
+use FacturaScripts\Core\DbUpdater;
 use FacturaScripts\Core\Response;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\UploadedFile;
@@ -32,6 +32,7 @@ use FacturaScripts\Dinamic\Model\User;
 use PDO;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Throwable;
 use ZipArchive;
 
 /**
@@ -95,7 +96,7 @@ class Backup extends Controller
 	{
 		parent::privateCore($response, $user, $permissions);
 
-		$this->active_tab = $this->request->input('active_tab', 'download');
+		$this->active_tab = $this->request->inputOrQuery('active_tab', 'download');
 		$this->current_charset = Tools::config('mysql_charset', 'utf8');
 
 		// cargamos la configuración del cron
@@ -105,7 +106,7 @@ class Backup extends Controller
 		$this->cron_weekly_day = Tools::settings('backup', 'weekly_day', 1);
 		$this->cron_monthly_day = Tools::settings('backup', 'monthly_day', 1);
 
-		$action = $this->request->input('action', '');
+		$action = $this->request->inputOrQuery('action', '');
 		switch ($action) {
 			case 'create-sql-file':
 				$this->createSqlAction();
@@ -408,6 +409,16 @@ class Backup extends Controller
 				$line .= ';';
 			}
 
+			// forzamos ROW_FORMAT=DYNAMIC en las definiciones de tabla para evitar el error
+			// 1118 "Row size too large" al restaurar (habitual con utf8mb4 y filas COMPACT)
+			if (stripos($line, 'ENGINE=InnoDB') !== false && stripos($line, 'ROW_FORMAT') === false) {
+				if (substr($line, -1) === ';') {
+					$line = substr($line, 0, -1) . ' ROW_FORMAT=DYNAMIC;';
+				} else {
+					$line .= ' ROW_FORMAT=DYNAMIC';
+				}
+			}
+
 			// añadimos la línea al archivo temporal
 			fwrite($newFile, $line . PHP_EOL);
 		}
@@ -565,13 +576,20 @@ class Backup extends Controller
 			return;
 		}
 
-		// si el archivo es .sql.gz, lo convertimos a .sql
+		// si el archivo es .sql.gz, lo descomprimimos a .sql
 		if (substr($dbFile->getClientOriginalName(), -7) === '.sql.gz') {
 			$sqlFile = $this->unzipDatabase($dbFile->getPathname());
 		} else {
-			$sqlFile = $this->fixSqlFile($dbFile->getPathname());
+			$sqlFile = $dbFile->getPathname();
 		}
 
+		if (empty($sqlFile)) {
+			Tools::log()->error('no-file-received');
+			return;
+		}
+
+		// normalizamos el SQL (fix de SET time_zone y fuerza ROW_FORMAT=DYNAMIC)
+		$sqlFile = $this->fixSqlFile($sqlFile);
 		if (empty($sqlFile)) {
 			Tools::log()->error('no-file-received');
 			return;
@@ -629,13 +647,29 @@ class Backup extends Controller
 		}
 		$this->dataBase->close();
 
-		// importamos el backup
-		$db = new PDO('mysql:host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name'), Tools::config('db_user'), Tools::config('db_pass'));
-		$backup = new MySQLBackup($db);
+		// importamos el backup con nuestro propio importador (no la librería vendor,
+		// que parte el SQL por ";\n" y corrompe los valores con HTML/CSS/multilínea)
+		try {
+			$driver = Tools::config('db_type') === 'postgresql' ? 'pgsql' : 'mysql';
+			$dsn = $driver . ':host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name');
+			$db = new PDO($dsn, Tools::config('db_user'), Tools::config('db_pass'));
+			$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-		$restore = $backup->restore($sqlFile);
+			$restore = BackupSQL::restore($db, $sqlFile);
+		} catch (Throwable $e) {
+			$restore = $e->getMessage();
+		}
+
 		if (true !== $restore) {
-			Tools::log()->error('record-save-error');
+			// mostramos el mensaje real del error
+			$message = is_string($restore) ? $restore : '';
+			Tools::log()->error('backup-restore-error', ['%error%' => $message]);
+
+			// si el fallo es por el tamaño de fila de InnoDB, damos una pista accionable
+			if (stripos($message, 'Row size too large') !== false) {
+				Tools::log()->error('backup-restore-strict-mode');
+			}
+
 			$this->dataBase->connect();
 			Cache::clear();
 			unlink($sqlFile);
@@ -644,6 +678,7 @@ class Backup extends Controller
 
 		Tools::log()->notice('record-updated-correctly');
 		$this->dataBase->connect();
+		DbUpdater::rebuild();
 		Cache::clear();
 		unlink($sqlFile);
 
@@ -661,7 +696,7 @@ class Backup extends Controller
 		// eliminamos las cookies
 		setcookie('fsNick', '', time() - 3600, Tools::config('route', '/'));
 		setcookie('fsLogkey', '', time() - 3600, Tools::config('route', '/'));
-
+		
 		$this->redirect('login');
 	}
 
@@ -729,7 +764,7 @@ class Backup extends Controller
 			return;
 		}
 
-		$selectedCharset = $this->request->query->get('charset');
+		$selectedCharset = $this->request->query('charset');
 		switch ($selectedCharset) {
 			case 'utf8':
 				$configFile = str_replace("'" . $configCharset . "'", "'utf8'", $configFile);
@@ -756,6 +791,7 @@ class Backup extends Controller
 			return;
 		}
 
+		$this->current_charset = $selectedCharset;
 		Tools::log()->notice('record-updated-correctly');
 	}
 
