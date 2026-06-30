@@ -347,6 +347,14 @@
 											{% endif %}
 											<dt class="col-sm-5">{{ trans('hour') }}:</dt>
 											<dd class="col-sm-7">{{ fsc.cron_hour }}:00</dd>
+											<dt class="col-sm-5">{{ trans('max-backups') }}:</dt>
+											<dd class="col-sm-7">
+												{% if fsc.cron_max_backups == 0 %}
+													{{ trans('unlimited') }}
+												{% else %}
+													{{ fsc.cron_max_backups }}
+												{% endif %}
+											</dd>
 										</dl>
 									</div>
 								</div>
