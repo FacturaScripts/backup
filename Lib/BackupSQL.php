@@ -86,4 +86,150 @@ class BackupSQL
 
         return true;
     }
+
+    /**
+     * Importa un archivo SQL en la conexión PDO indicada, ejecutando las sentencias una a una.
+     *
+     * Usa un troceado propio que respeta las cadenas entrecomilladas, los identificadores con
+     * acentos graves y los comentarios. Así no parte una sentencia por un ';' que esté dentro
+     * de un valor (HTML, CSS, texto multilínea, etc.), cosa que sí hacía la librería vendor.
+     *
+     * @return bool|string true si la importación fue correcta, o el mensaje de error si falla.
+     */
+    public static function restore(PDO $db, string $sqlFile)
+    {
+        $content = file_get_contents($sqlFile);
+        if (false === $content) {
+            return Tools::trans('no-file-received');
+        }
+
+        // intentamos desactivar el modo estricto de InnoDB (red de seguridad ante errores de
+        // formato de fila). Algunos servidores no lo permiten por falta de privilegios; en ese
+        // caso lo ignoramos y continuamos.
+        try {
+            $db->exec('SET SESSION innodb_strict_mode = OFF');
+        } catch (\Throwable $e) {
+            // sin privilegios para cambiar la variable; continuamos igualmente
+        }
+
+        // desactivamos la comprobación de claves foráneas durante la importación
+        $db->exec('SET FOREIGN_KEY_CHECKS = 0');
+
+        $statement = '';
+        $length = strlen($content);
+        $inString = false;
+        $inIdentifier = false;
+        $i = 0;
+
+        while ($i < $length) {
+            $char = $content[$i];
+
+            // dentro de una cadena '...'
+            if ($inString) {
+                $statement .= $char;
+                if ($char === '\\' && $i + 1 < $length) {
+                    // carácter escapado: lo añadimos tal cual sin interpretarlo
+                    $statement .= $content[$i + 1];
+                    $i += 2;
+                    continue;
+                }
+                if ($char === "'") {
+                    // dos comillas seguidas '' es una comilla escapada: seguimos dentro
+                    if ($i + 1 < $length && $content[$i + 1] === "'") {
+                        $statement .= "'";
+                        $i += 2;
+                        continue;
+                    }
+                    $inString = false;
+                }
+                $i++;
+                continue;
+            }
+
+            // dentro de un identificador `...`
+            if ($inIdentifier) {
+                $statement .= $char;
+                if ($char === '`') {
+                    $inIdentifier = false;
+                }
+                $i++;
+                continue;
+            }
+
+            // comentario de línea: -- (seguido de espacio/salto) o #
+            if (($char === '-' && $i + 2 < $length && $content[$i + 1] === '-'
+                    && in_array($content[$i + 2], [' ', "\t", "\n", "\r"], true))
+                || $char === '#') {
+                while ($i < $length && $content[$i] !== "\n") {
+                    $i++;
+                }
+                continue;
+            }
+
+            // comentario de bloque /* ... */
+            if ($char === '/' && $i + 1 < $length && $content[$i + 1] === '*') {
+                $i += 2;
+                while ($i + 1 < $length && !($content[$i] === '*' && $content[$i + 1] === '/')) {
+                    $i++;
+                }
+                $i += 2;
+                continue;
+            }
+
+            if ($char === "'") {
+                $inString = true;
+                $statement .= $char;
+                $i++;
+                continue;
+            }
+
+            if ($char === '`') {
+                $inIdentifier = true;
+                $statement .= $char;
+                $i++;
+                continue;
+            }
+
+            // fin de sentencia
+            if ($char === ';') {
+                $error = static::execStatement($db, $statement);
+                if (null !== $error) {
+                    return $error;
+                }
+                $statement = '';
+                $i++;
+                continue;
+            }
+
+            $statement .= $char;
+            $i++;
+        }
+
+        // última sentencia sin ';' final
+        $error = static::execStatement($db, $statement);
+        if (null !== $error) {
+            return $error;
+        }
+
+        return true;
+    }
+
+    /**
+     * Ejecuta una sentencia SQL. Devuelve null si fue correcta o ignorable, o el mensaje de error.
+     */
+    private static function execStatement(PDO $db, string $statement): ?string
+    {
+        $statement = trim($statement);
+        if ($statement === '') {
+            return null;
+        }
+
+        try {
+            $db->exec($statement);
+        } catch (\Throwable $e) {
+            return $e->getMessage();
+        }
+
+        return null;
+    }
 }
