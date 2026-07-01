@@ -55,10 +55,10 @@ class Backup extends Controller
 	public $cron_hour = 3;
 
 	/** @var int */
-	public $cron_monthly_day = 1;
+	public $cron_max_backups = 0;
 
 	/** @var int */
-	public $cron_max_backups = 0;
+	public $cron_monthly_day = 1;
 
 	/** @var int */
 	public $cron_weekly_day = 1;
@@ -304,8 +304,8 @@ class Backup extends Controller
 			return;
 		}
 
-		$db_file = $this->request->request->get('db_file', '');
-		$zip_file = $this->request->request->get('zip_file', '');
+		$db_file = $this->request->input('db_file', '');
+		$zip_file = $this->request->input('zip_file', '');
 		if (empty($db_file) && empty($zip_file)) {
 			Tools::log()->warning('no-file-received');
 			return;
@@ -343,7 +343,7 @@ class Backup extends Controller
 			return;
 		}
 
-		$file_name = $this->request->request->get('file_name', '');
+		$file_name = $this->request->input('file_name', '');
 		if (empty($file_name)) {
 			Tools::log()->warning('no-file-received');
 			return;
@@ -368,7 +368,7 @@ class Backup extends Controller
 			return;
 		}
 
-		$file_name = $this->request->request->get('file_name', '');
+		$file_name = $this->request->input('file_name', '');
 		if (empty($file_name)) {
 			Tools::log()->warning('no-file-received');
 			return;
@@ -382,52 +382,6 @@ class Backup extends Controller
 
 		$this->setTemplate(false);
 		$this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
-	}
-
-	private function fixSqlFile(string $filePath): string
-	{
-		// abrimos el archivo
-		$file = fopen($filePath, 'r');
-		if (false === $file) {
-			return '';
-		}
-
-		// creamos un archivo temporal
-		$newFilePath = Tools::folder('temp.sql');
-		$newFile = fopen($newFilePath, 'w');
-		if (false === $newFile) {
-			fclose($file);
-			return $filePath;
-		}
-
-		// leemos el archivo línea a línea
-		while ($buffer = fgets($file)) {
-			$line = trim($buffer);
-
-			// si la línea es SET time_zone, nos aseguramos de que termine en ;
-			if (strpos($line, 'SET time_zone') === 0 && substr($line, -1) !== ';') {
-				$line .= ';';
-			}
-
-			// forzamos ROW_FORMAT=DYNAMIC en las definiciones de tabla para evitar el error
-			// 1118 "Row size too large" al restaurar (habitual con utf8mb4 y filas COMPACT)
-			if (stripos($line, 'ENGINE=InnoDB') !== false && stripos($line, 'ROW_FORMAT') === false) {
-				if (substr($line, -1) === ';') {
-					$line = substr($line, 0, -1) . ' ROW_FORMAT=DYNAMIC;';
-				} else {
-					$line .= ' ROW_FORMAT=DYNAMIC';
-				}
-			}
-
-			// añadimos la línea al archivo temporal
-			fwrite($newFile, $line . PHP_EOL);
-		}
-
-		// cerramos los archivos
-		fclose($file);
-		fclose($newFile);
-
-		return $newFilePath;
 	}
 
 	private function getMemoryLimitMb(): int
@@ -589,7 +543,7 @@ class Backup extends Controller
 		}
 
 		// normalizamos el SQL (fix de SET time_zone y fuerza ROW_FORMAT=DYNAMIC)
-		$sqlFile = $this->fixSqlFile($sqlFile);
+		$sqlFile = BackupSQL::fixSqlFile($sqlFile);
 		if (empty($sqlFile)) {
 			Tools::log()->error('no-file-received');
 			return;
@@ -602,10 +556,10 @@ class Backup extends Controller
 		}
 
 		// validamos los campos de gestión del admin antes de restaurar
-		$adminAction = $this->request->request->get('admin_action', 'none');
+		$adminAction = $this->request->input('admin_action', 'none');
 		if ($adminAction === 'update') {
-			$newAdminPassword = $this->request->request->get('new_admin_password', '');
-			$newAdminPassword2 = $this->request->request->get('new_admin_password2', '');
+			$newAdminPassword = $this->request->input('new_admin_password', '');
+			$newAdminPassword2 = $this->request->input('new_admin_password2', '');
 			if ($newAdminPassword !== $newAdminPassword2) {
 				Tools::log()->error('restore-admin-passwords-mismatch');
 				unlink($sqlFile);
@@ -618,9 +572,9 @@ class Backup extends Controller
 				return;
 			}
 		} elseif ($adminAction === 'create') {
-			$newAdminNick = trim($this->request->request->get('new_admin_nick', ''));
-			$newAdminCreatePassword = $this->request->request->get('new_admin_create_password', '');
-			$newAdminCreatePassword2 = $this->request->request->get('new_admin_create_password2', '');
+			$newAdminNick = trim($this->request->input('new_admin_nick', ''));
+			$newAdminCreatePassword = $this->request->input('new_admin_create_password', '');
+			$newAdminCreatePassword2 = $this->request->input('new_admin_create_password2', '');
 			if (empty($newAdminNick)) {
 				Tools::log()->error('restore-admin-nick-required');
 				unlink($sqlFile);
@@ -684,12 +638,12 @@ class Backup extends Controller
 
 		// gestionamos el acceso del admin tras la restauración
 		if ($adminAction === 'update') {
-			$newAdminPassword = $this->request->request->get('new_admin_password', '');
-			$disable2fa = (bool)$this->request->request->get('disable_2fa', false);
+			$newAdminPassword = $this->request->input('new_admin_password', '');
+			$disable2fa = (bool)$this->request->input('disable_2fa', false);
 			$this->updateAdminPasswordAfterRestore($newAdminPassword, $disable2fa);
 		} elseif ($adminAction === 'create') {
-			$newAdminNick = trim($this->request->request->get('new_admin_nick', ''));
-			$newAdminCreatePassword = $this->request->request->get('new_admin_create_password', '');
+			$newAdminNick = trim($this->request->input('new_admin_nick', ''));
+			$newAdminCreatePassword = $this->request->input('new_admin_create_password', '');
 			$this->createAdminUserAfterRestore($newAdminNick, $newAdminCreatePassword);
 		}
 

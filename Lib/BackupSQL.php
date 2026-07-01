@@ -28,6 +28,59 @@ use PDO;
  */
 class BackupSQL
 {
+    /**
+     * Normaliza un archivo SQL antes de restaurarlo, escribiendo el resultado en un temporal
+     * y devolviendo su ruta. Solo modifica líneas ESTRUCTURALES:
+     *  - asegura el ';' final en las líneas SET time_zone
+     *  - fuerza ROW_FORMAT=DYNAMIC en la línea de opciones de tabla (empieza por ')') para
+     *    evitar el error 1118 "Row size too large" al restaurar bajo innodb_strict_mode
+     *
+     * Las líneas de datos se copian tal cual, para no corromper valores multilínea (HTML/CSS,
+     * texto con sangría) ni valores que contengan el texto "ENGINE=InnoDB" embebido.
+     */
+    public static function fixSqlFile(string $filePath): string
+    {
+        $file = fopen($filePath, 'r');
+        if (false === $file) {
+            return '';
+        }
+
+        $newFilePath = Tools::folder('temp.sql');
+        $newFile = fopen($newFilePath, 'w');
+        if (false === $newFile) {
+            fclose($file);
+            return $filePath;
+        }
+
+        while (($buffer = fgets($file)) !== false) {
+            $trimmed = trim($buffer);
+
+            // aseguramos el ';' final en las líneas SET time_zone
+            if (strpos($trimmed, 'SET time_zone') === 0 && substr($trimmed, -1) !== ';') {
+                fwrite($newFile, $trimmed . ';' . PHP_EOL);
+                continue;
+            }
+
+            // forzamos ROW_FORMAT=DYNAMIC solo en la línea de opciones de tabla (empieza por ')'),
+            // nunca en líneas de datos que puedan contener "ENGINE=InnoDB" dentro de un valor
+            if (strpos($trimmed, ')') === 0 && stripos($trimmed, 'ENGINE=InnoDB') !== false && stripos($trimmed, 'ROW_FORMAT') === false) {
+                $line = substr($trimmed, -1) === ';'
+                    ? substr($trimmed, 0, -1) . ' ROW_FORMAT=DYNAMIC;'
+                    : $trimmed . ' ROW_FORMAT=DYNAMIC';
+                fwrite($newFile, $line . PHP_EOL);
+                continue;
+            }
+
+            // resto de líneas: se copian sin modificar
+            fwrite($newFile, $buffer);
+        }
+
+        fclose($file);
+        fclose($newFile);
+
+        return $newFilePath;
+    }
+
     public static function generate(string $channel = ''): bool
     {
         $folder = Tools::folder('MyFiles', 'Backups');
@@ -101,10 +154,22 @@ class BackupSQL
             return Tools::trans('no-file-received');
         }
 
+        // detectamos la codificación del volcado: los backups generados por la librería
+        // antigua guardaban los datos en latin1. Si el contenido no es UTF-8 válido asumimos
+        // latin1, para que el servidor convierta los bytes al charset de las columnas y no
+        // falle con el error 1366 "Incorrect string value".
+        $isUtf8 = mb_check_encoding($content, 'UTF-8');
+
         // arranque de sesión dependiente del motor. Todas las sentencias van protegidas:
         // si el servidor no permite cambiar la variable (falta de privilegios) lo ignoramos.
         $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
         if ($driver === 'mysql') {
+            // fijamos el charset de la conexión según la codificación detectada del volcado
+            try {
+                $db->exec('SET NAMES ' . ($isUtf8 ? Tools::config('mysql_charset', 'utf8mb4') : 'latin1'));
+            } catch (\Throwable $e) {
+                // continuamos igualmente
+            }
             // desactivamos el modo estricto de InnoDB (red de seguridad ante errores de
             // formato de fila) y la comprobación de claves foráneas durante la importación
             try {
@@ -118,6 +183,12 @@ class BackupSQL
                 // continuamos igualmente
             }
         } elseif ($driver === 'pgsql') {
+            // fijamos la codificación del cliente según la detectada del volcado
+            try {
+                $db->exec("SET client_encoding = '" . ($isUtf8 ? 'UTF8' : 'LATIN1') . "'");
+            } catch (\Throwable $e) {
+                // continuamos igualmente
+            }
             // desactivamos los disparadores de claves foráneas (las FK se crean al final
             // del volcado, así que normalmente no es necesario, pero es una red de seguridad)
             try {

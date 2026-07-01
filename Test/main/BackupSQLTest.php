@@ -120,6 +120,43 @@ final class BackupSQLTest extends TestCase
         $this->assertSame($tricky, $kept->nombre, 'El valor con caracteres especiales no se conservó intacto en la copia/restauración');
     }
 
+    /**
+     * Regresión: fixSqlFile() solo debe añadir ROW_FORMAT=DYNAMIC a la línea de opciones de
+     * tabla (empieza por ')'), nunca a una línea de datos que contenga "ENGINE=InnoDB" embebido
+     * (p. ej. un INSERT con SQL guardado dentro de un valor). Esto rompía copias antiguas.
+     */
+    public function testFixSqlFileOnlyAddsRowFormatToTableOptions(): void
+    {
+        $src = Tools::folder('MyFiles', 'backup_fixtest_' . uniqid('', true) . '.sql');
+
+        // línea de datos con SQL embebido que contiene "ENGINE=InnoDB" (no debe modificarse)
+        $dataLine = "('database', '{\"sql\":\"CREATE TABLE x (id int) ENGINE=InnoDB\"}');";
+        $content = "CREATE TABLE `x` (\n"
+            . "  `id` int(11) NOT NULL\n"
+            . ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n"
+            . "INSERT INTO `y` (`k`, `v`) VALUES\n"
+            . $dataLine . "\n";
+        file_put_contents($src, $content);
+
+        $out = BackupSQL::fixSqlFile($src);
+        $this->assertNotEmpty($out, 'fixSqlFile no devolvió ruta');
+        $result = file_get_contents($out);
+
+        // la línea de opciones de tabla recibe ROW_FORMAT=DYNAMIC
+        $this->assertStringContainsString('COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;', $result);
+
+        // la línea de datos con "ENGINE=InnoDB" embebido se conserva intacta
+        $this->assertStringContainsString($dataLine, $result);
+
+        // ROW_FORMAT=DYNAMIC debe aparecer una sola vez (solo en la tabla, no en los datos)
+        $this->assertSame(1, substr_count($result, 'ROW_FORMAT=DYNAMIC'), 'ROW_FORMAT solo debe añadirse a la línea de opciones de tabla');
+
+        @unlink($src);
+        if ($out !== $src) {
+            @unlink($out);
+        }
+    }
+
     public function testGenerateCreatesBackupsFolder(): void
     {
         if (Tools::config('db_type') !== 'mysql') {
