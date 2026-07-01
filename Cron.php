@@ -87,7 +87,39 @@ class Cron extends CronClass
 
         $job->run(function () {
             $this->createBackup();
+            $this->applyBackupLimit();
         });
+    }
+
+    protected function applyBackupLimit(): void
+    {
+        $limit = (int) Tools::settings('backup', 'max_backups', 0);
+        if ($limit <= 0) {
+            return;
+        }
+
+        $folder = Tools::folder('MyFiles', 'Backups');
+        $files = is_dir($folder) ? scandir($folder) : [];
+
+        foreach (['sql', 'zip'] as $ext) {
+            $byExt = [];
+            foreach ($files as $file) {
+                if (str_ends_with($file, '.' . $ext)) {
+                    $byExt[] = $file;
+                }
+            }
+
+            rsort($byExt); // más recientes primero (nombre = fecha)
+            $toDelete = array_slice($byExt, $limit);
+
+            foreach ($toDelete as $filename) {
+                $path = $folder . DIRECTORY_SEPARATOR . $filename;
+                if (file_exists($path)) {
+                    unlink($path);
+                    Tools::log(self::JOB_NAME)->info('backup-deleted', ['%file%' => $filename]);
+                }
+            }
+        }
     }
 
     protected function createBackup(): void

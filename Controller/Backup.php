@@ -58,6 +58,9 @@ class Backup extends Controller
 	public $cron_monthly_day = 1;
 
 	/** @var int */
+	public $cron_max_backups = 0;
+
+	/** @var int */
 	public $cron_weekly_day = 1;
 
 	/** @var string */
@@ -99,6 +102,7 @@ class Backup extends Controller
 		// cargamos la configuración del cron
 		$this->cron_frequency = Tools::settings('backup', 'frequency', '1 week');
 		$this->cron_hour = Tools::settings('backup', 'hour', 3);
+		$this->cron_max_backups = (int) Tools::settings('backup', 'max_backups', 0);
 		$this->cron_weekly_day = Tools::settings('backup', 'weekly_day', 1);
 		$this->cron_monthly_day = Tools::settings('backup', 'monthly_day', 1);
 

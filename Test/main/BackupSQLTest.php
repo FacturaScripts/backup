@@ -162,14 +162,14 @@ final class BackupSQLTest extends TestCase
         $this->assertGreaterThan(0, filesize($newFile), 'El archivo .sql generado está vacío');
     }
 
-    public function testGenerateReturnsFalseOnNonMySQL(): void
+    public function testGenerateReturnsTrueOnPostgreSQL(): void
     {
-        if (Tools::config('db_type') === 'mysql') {
-            $this->markTestSkipped('Test solo aplica cuando db_type != mysql');
+        if (Tools::config('db_type') !== 'postgresql') {
+            $this->markTestSkipped('Test solo aplica con PostgreSQL');
         }
 
         $result = BackupSQL::generate('test');
-        $this->assertFalse($result);
+        $this->assertTrue($result, 'BackupSQL ahora soporta PostgreSQL y debe generar la copia');
     }
 
     protected function setUp(): void

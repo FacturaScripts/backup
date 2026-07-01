@@ -45,6 +45,7 @@ class Init extends InitClass
         Tools::settings('backup', 'weekly_day', 1);
         Tools::settings('backup', 'monthly_day', 1);
         Tools::settings('backup', 'hour', 3);
+        Tools::settings('backup', 'max_backups', 0);
         Tools::settingsSave();
     }
 }

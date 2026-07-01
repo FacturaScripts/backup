@@ -29,6 +29,9 @@
             <column name="hour" id="backup_hour" numcolumns="3" order="130">
                 <widget type="number" fieldname="hour" min="0" max="23" required="true"/>
             </column>
+            <column name="max-backups" id="backup_max_backups" numcolumns="3" order="140">
+                <widget type="number" fieldname="max_backups" min="0" required="true"/>
+            </column>
         </group>
     </columns>
 </view>
