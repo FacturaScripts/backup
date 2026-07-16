@@ -153,12 +153,15 @@ class BackupSQL
      * acentos graves y los comentarios. Así no parte una sentencia por un ';' que esté dentro
      * de un valor (HTML, CSS, texto multilínea, etc.), cosa que sí hacía la librería vendor.
      *
+     * El archivo se lee en streaming (nunca entero en memoria): solo se mantiene en memoria
+     * la sentencia en curso, para que dumps de varios GB no agoten memory_limit.
+     *
      * @return bool|string true si la importación fue correcta, o el mensaje de error si falla.
      */
     public static function restore(PDO $db, string $sqlFile)
     {
-        $content = file_get_contents($sqlFile);
-        if (false === $content) {
+        $handle = fopen($sqlFile, 'r');
+        if (false === $handle) {
             return Tools::trans('no-file-received');
         }
 
@@ -166,7 +169,7 @@ class BackupSQL
         // antigua guardaban los datos en latin1. Si el contenido no es UTF-8 válido asumimos
         // latin1, para que el servidor convierta los bytes al charset de las columnas y no
         // falle con el error 1366 "Incorrect string value".
-        $isUtf8 = mb_check_encoding($content, 'UTF-8');
+        $isUtf8 = static::isUtf8File($sqlFile);
 
         // arranque de sesión dependiente del motor. Todas las sentencias van protegidas:
         // si el servidor no permite cambiar la variable (falta de privilegios) lo ignoramos.
@@ -207,33 +210,65 @@ class BackupSQL
         }
 
         $statement = '';
-        $length = strlen($content);
         $inString = false;
         $inIdentifier = false;
-        $i = 0;
+        $inLineComment = false;
+        $inBlockComment = false;
+        $buffer = '';
+        $pos = 0;
 
-        while ($i < $length) {
-            $char = $content[$i];
+        while (true) {
+            // rellenamos el buffer garantizando al menos 3 bytes de lookahead mientras quede archivo
+            if ($pos + 3 > strlen($buffer) && false === feof($handle)) {
+                $chunk = fread($handle, 65536);
+                $buffer = substr($buffer, $pos) . ($chunk === false ? '' : $chunk);
+                $pos = 0;
+            }
+            if ($pos >= strlen($buffer)) {
+                break;
+            }
+
+            $char = $buffer[$pos];
+
+            // dentro de un comentario de línea: descartamos hasta el salto de línea
+            if ($inLineComment) {
+                if ($char === "\n") {
+                    $inLineComment = false;
+                }
+                $pos++;
+                continue;
+            }
+
+            // dentro de un comentario de bloque: descartamos hasta el */
+            if ($inBlockComment) {
+                if ($char === '*' && ($buffer[$pos + 1] ?? '') === '/') {
+                    $inBlockComment = false;
+                    $pos += 2;
+                    continue;
+                }
+                $pos++;
+                continue;
+            }
 
             // dentro de una cadena '...'
             if ($inString) {
                 $statement .= $char;
-                if ($char === '\\' && $i + 1 < $length) {
+                if ($char === '\\' && isset($buffer[$pos + 1])) {
                     // carácter escapado: lo añadimos tal cual sin interpretarlo
-                    $statement .= $content[$i + 1];
-                    $i += 2;
+                    $statement .= $buffer[$pos + 1];
+                    $pos += 2;
                     continue;
                 }
                 if ($char === "'") {
                     // dos comillas seguidas '' es una comilla escapada: seguimos dentro
-                    if ($i + 1 < $length && $content[$i + 1] === "'") {
+                    if (($buffer[$pos + 1] ?? '') === "'") {
                         $statement .= "'";
-                        $i += 2;
+                        $pos += 2;
                         continue;
                     }
                     $inString = false;
                 }
-                $i++;
+                $pos++;
                 continue;
             }
 
@@ -243,41 +278,41 @@ class BackupSQL
                 if ($char === '`') {
                     $inIdentifier = false;
                 }
-                $i++;
+                $pos++;
                 continue;
             }
 
             // comentario de línea: -- (seguido de espacio/salto) o #
-            if (($char === '-' && $i + 2 < $length && $content[$i + 1] === '-'
-                    && in_array($content[$i + 2], [' ', "\t", "\n", "\r"], true))
-                || $char === '#') {
-                while ($i < $length && $content[$i] !== "\n") {
-                    $i++;
-                }
+            if ($char === '-' && ($buffer[$pos + 1] ?? '') === '-'
+                && in_array($buffer[$pos + 2] ?? "\n", [' ', "\t", "\n", "\r"], true)) {
+                $inLineComment = true;
+                $pos += 2;
+                continue;
+            }
+            if ($char === '#') {
+                $inLineComment = true;
+                $pos++;
                 continue;
             }
 
             // comentario de bloque /* ... */
-            if ($char === '/' && $i + 1 < $length && $content[$i + 1] === '*') {
-                $i += 2;
-                while ($i + 1 < $length && !($content[$i] === '*' && $content[$i + 1] === '/')) {
-                    $i++;
-                }
-                $i += 2;
+            if ($char === '/' && ($buffer[$pos + 1] ?? '') === '*') {
+                $inBlockComment = true;
+                $pos += 2;
                 continue;
             }
 
             if ($char === "'") {
                 $inString = true;
                 $statement .= $char;
-                $i++;
+                $pos++;
                 continue;
             }
 
             if ($char === '`') {
                 $inIdentifier = true;
                 $statement .= $char;
-                $i++;
+                $pos++;
                 continue;
             }
 
@@ -285,16 +320,19 @@ class BackupSQL
             if ($char === ';') {
                 $error = static::execStatement($db, $statement);
                 if (null !== $error) {
+                    fclose($handle);
                     return $error;
                 }
                 $statement = '';
-                $i++;
+                $pos++;
                 continue;
             }
 
             $statement .= $char;
-            $i++;
+            $pos++;
         }
+
+        fclose($handle);
 
         // última sentencia sin ';' final
         $error = static::execStatement($db, $statement);
@@ -303,6 +341,53 @@ class BackupSQL
         }
 
         return true;
+    }
+
+    /**
+     * Comprueba en streaming si un archivo es UTF-8 válido, sin cargarlo entero en memoria.
+     * Entre trozo y trozo se aparta la posible secuencia multibyte incompleta del final,
+     * para no dar un falso negativo por cortar un carácter por la mitad.
+     */
+    private static function isUtf8File(string $filePath): bool
+    {
+        $handle = fopen($filePath, 'r');
+        if (false === $handle) {
+            return true;
+        }
+
+        $carry = '';
+        while (false === feof($handle)) {
+            $chunk = fread($handle, 262144);
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            $chunk = $carry . $chunk;
+            $carry = '';
+
+            // buscamos en los últimos 3 bytes el inicio de una secuencia multibyte
+            // que podría continuar en el siguiente trozo, y la apartamos
+            $len = strlen($chunk);
+            for ($i = 1; $i <= 3 && $i <= $len; $i++) {
+                $byte = ord($chunk[$len - $i]);
+                if (($byte & 0b11000000) === 0b10000000) {
+                    // byte de continuación: seguimos buscando el byte inicial
+                    continue;
+                }
+                if (($byte & 0b11000000) === 0b11000000) {
+                    $carry = substr($chunk, $len - $i);
+                    $chunk = substr($chunk, 0, $len - $i);
+                }
+                break;
+            }
+
+            if (false === mb_check_encoding($chunk, 'UTF-8')) {
+                fclose($handle);
+                return false;
+            }
+        }
+        fclose($handle);
+
+        return $carry === '' || mb_check_encoding($carry, 'UTF-8');
     }
 
     /**
