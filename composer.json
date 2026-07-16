@@ -15,6 +15,6 @@
   "require": {
     "ext-mbstring": "*",
     "ext-zip": "*",
-    "maennchen/zipstream-php": "^2.4"
+    "maennchen/zipstream-php": "^2.4 || ^3.0"
   }
 }

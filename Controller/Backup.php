@@ -708,36 +708,27 @@ class Backup extends Controller
 			return;
 		}
 
-		$configCharset = Tools::config('mysql_charset');
-		$configCollate = Tools::config('mysql_collate');
-		if (empty($configCharset) || empty($configCollate)) {
-			Tools::log()->error('config-mysql-charset-error', [
-				'%config-charset%' => $configCharset,
-				'%config-collate%' => $configCollate
-			]);
-			return;
-		}
-
 		$selectedCharset = $this->request->query('charset');
 		switch ($selectedCharset) {
 			case 'utf8':
-				$configFile = str_replace("'" . $configCharset . "'", "'utf8'", $configFile);
-				$configFile = str_replace("'" . $configCollate . "'", "'utf8_bin'", $configFile);
+				$selectedCollate = 'utf8_bin';
 				break;
 
 			case 'utf8mb4':
-				$configFile = str_replace("'" . $configCharset . "'", "'utf8mb4'", $configFile);
-				$configFile = str_replace("'" . $configCollate . "'", "'utf8mb4_unicode_520_ci'", $configFile);
+				$selectedCollate = 'utf8mb4_unicode_520_ci';
 				break;
 
 			default:
 				Tools::log()->error('config-mysql-charset-error', [
-					'%config-charset%' => $configCharset,
-					'%config-collate%' => $configCollate,
+					'%config-charset%' => Tools::config('mysql_charset'),
+					'%config-collate%' => Tools::config('mysql_collate'),
 					'%selected-charset%' => $selectedCharset
 				]);
 				return;
 		}
+
+		$configFile = $this->setConfigConstant($configFile, 'FS_MYSQL_CHARSET', $selectedCharset);
+		$configFile = $this->setConfigConstant($configFile, 'FS_MYSQL_COLLATE', $selectedCollate);
 
 		// guardamos el archivo
 		if (false === file_put_contents(Tools::folder('config.php'), $configFile)) {
@@ -747,6 +738,28 @@ class Backup extends Controller
 
 		$this->current_charset = $selectedCharset;
 		Tools::log()->notice('record-updated-correctly');
+	}
+
+	private function setConfigConstant(string $configFile, string $name, string $value): string
+	{
+		$definition = "define('" . $name . "', '" . $value . "');";
+		$pattern = "/define\\s*\\(\\s*(['\"])" . preg_quote($name, '/')
+			. "\\1\\s*,\\s*(['\"])[^'\"]*\\2\\s*\\)\\s*;/";
+
+		if (preg_match($pattern, $configFile)) {
+			return preg_replace($pattern, $definition, $configFile, 1);
+		}
+
+		$closingTagPosition = strrpos($configFile, '?>');
+		if ($closingTagPosition === false) {
+			$separator = str_ends_with($configFile, "\n") ? '' : PHP_EOL;
+			return $configFile . $separator . $definition . PHP_EOL;
+		}
+
+		$beforeClosingTag = substr($configFile, 0, $closingTagPosition);
+		$separator = str_ends_with($beforeClosingTag, "\n") ? '' : PHP_EOL;
+		return $beforeClosingTag . $separator . $definition . PHP_EOL
+			. substr($configFile, $closingTagPosition);
 	}
 
 	private function unzipDatabase(string $gzFilePath): string

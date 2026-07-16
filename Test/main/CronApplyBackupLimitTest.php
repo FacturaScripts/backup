@@ -107,8 +107,11 @@ final class CronApplyBackupLimitTest extends TestCase
         $restantesSql = array_filter($archivosSql, 'file_exists');
         $restantesZip = array_filter($archivosZip, 'file_exists');
 
-        $this->assertLessThanOrEqual(3, count($restantesSql), 'No deben quedar mas de 3 sql de test');
-        $this->assertLessThanOrEqual(3, count($restantesZip), 'No deben quedar mas de 3 zip de test');
+        $esperadosSql = min(count($archivosSql), max(0, $limite - $this->sqlPrevios));
+        $esperadosZip = min(count($archivosZip), max(0, $limite - $this->zipPrevios));
+
+        $this->assertCount($esperadosSql, $restantesSql, 'El limite de archivos sql no se aplico correctamente');
+        $this->assertCount($esperadosZip, $restantesZip, 'El limite de archivos zip no se aplico correctamente');
     }
 
     /** @return array<string> */

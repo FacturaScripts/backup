@@ -19,10 +19,10 @@
 
 namespace FacturaScripts\Plugins\Backup\Lib;
 
-use Exception;
 use FacturaScripts\Core\Tools;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Throwable;
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
@@ -64,11 +64,20 @@ class BackupFile
 
         try {
             // configuramos ZipStream para escribir directamente al stream del archivo
-            $options = new Archive();
-            $options->setSendHttpHeaders(false);
-            $options->setOutputStream($outputStream);
-
-            $zip = new ZipStream(basename($fileName), $options);
+            if (class_exists(Archive::class)) {
+                // ZipStream 2.x
+                $options = new Archive();
+                $options->setSendHttpHeaders(false);
+                $options->setOutputStream($outputStream);
+                $zip = new ZipStream(basename($fileName), $options);
+            } else {
+                // ZipStream 3.x
+                $zip = new ZipStream(
+                    outputName: basename($fileName),
+                    sendHttpHeaders: false,
+                    outputStream: $outputStream
+                );
+            }
 
             $files = new RecursiveIteratorIterator(
                 new RecursiveDirectoryIterator(FS_FOLDER),
@@ -95,7 +104,7 @@ class BackupFile
             }
 
             $zip->finish();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             fclose($outputStream);
             return false;
         }
