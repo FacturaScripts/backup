@@ -166,8 +166,9 @@ class Backup extends Controller
 				break;
 			}
 
-			foreach (['utf8', 'utf8mb3', 'utf8mb4'] as $charset) {
-				if (strpos($buffer, ' CHARSET=' . $charset . ' ') !== false) {
+			// con límite de palabra: 'CHARSET=utf8mb4;' o a final de línea también cuentan
+			if (preg_match_all('/\bCHARSET=(utf8mb4|utf8mb3|utf8)\b/', $buffer, $matches)) {
+				foreach ($matches[1] as $charset) {
 					// utf8mb3 es lo mismo que utf8
 					$normalizedCharset = $charset === 'utf8mb3' ? 'utf8' : $charset;
 					$foundCharsets[$normalizedCharset] = true;
@@ -501,6 +502,8 @@ class Backup extends Controller
 				$src = Tools::folder('zip_backup', 'Plugins', $file);
 				if (is_dir($src)) {
 					Tools::folderCopy($src, $dest);
+				} elseif (is_file($src)) {
+					copy($src, $dest);
 				}
 			}
 		}
@@ -516,6 +519,8 @@ class Backup extends Controller
 				$src = Tools::folder('zip_backup', 'MyFiles', $file);
 				if (is_dir($src)) {
 					Tools::folderCopy($src, $dest);
+				} elseif (is_file($src)) {
+					copy($src, $dest);
 				}
 			}
 		} else {
@@ -529,6 +534,8 @@ class Backup extends Controller
 				$src = Tools::folder('zip_backup', $file);
 				if (is_dir($src)) {
 					Tools::folderCopy($src, $dest);
+				} elseif (is_file($src)) {
+					copy($src, $dest);
 				}
 			}
 		}
@@ -549,8 +556,10 @@ class Backup extends Controller
 		}
 
 		// si el archivo es .sql.gz, lo descomprimimos a .sql
+		$gzExtracted = '';
 		if (substr($dbFile->getClientOriginalName(), -7) === '.sql.gz') {
-			$sqlFile = $this->unzipDatabase($dbFile->getPathname());
+			$gzExtracted = $this->unzipDatabase($dbFile->getPathname());
+			$sqlFile = $gzExtracted;
 		} else {
 			$sqlFile = $dbFile->getPathname();
 		}
@@ -562,6 +571,12 @@ class Backup extends Controller
 
 		// normalizamos el SQL (fix de SET time_zone y fuerza ROW_FORMAT=DYNAMIC)
 		$sqlFile = BackupSQL::fixSqlFile($sqlFile);
+
+		// el .sql intermedio de la descompresión ya no es necesario
+		if ($gzExtracted !== '' && $gzExtracted !== $sqlFile && file_exists($gzExtracted)) {
+			unlink($gzExtracted);
+		}
+
 		if (empty($sqlFile)) {
 			Tools::log()->error('no-file-received');
 			return;
@@ -804,7 +819,8 @@ class Backup extends Controller
 		}
 
 		// copiamos el contenido del archivo .sql.gz al archivo .sql
-		while ($buffer = gzread($gzFile, 4096)) {
+		// (comparación estricta: un último trozo "0" es falsy y truncaría el archivo)
+		while (($buffer = gzread($gzFile, 4096)) !== false && $buffer !== '') {
 			fwrite($sqlFile, $buffer);
 		}
 

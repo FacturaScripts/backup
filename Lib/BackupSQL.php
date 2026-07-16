@@ -215,6 +215,11 @@ class BackupSQL
             }
         }
 
+        // en mysql el backslash escapa caracteres dentro de cadenas; en postgresql
+        // (standard_conforming_strings) es un carácter literal y las comillas solo
+        // se escapan doblándolas: tratarlo como escape rompería valores acabados en '\'
+        $backslashEscapes = $driver === 'mysql';
+
         $statement = '';
         $inString = false;
         $inIdentifier = false;
@@ -259,7 +264,7 @@ class BackupSQL
             // dentro de una cadena '...'
             if ($inString) {
                 $statement .= $char;
-                if ($char === '\\' && isset($buffer[$pos + 1])) {
+                if ($backslashEscapes && $char === '\\' && isset($buffer[$pos + 1])) {
                     // carácter escapado: lo añadimos tal cual sin interpretarlo
                     $statement .= $buffer[$pos + 1];
                     $pos += 2;
@@ -581,24 +586,44 @@ class BackupSQL
             . implode(",\n", $defs)
             . "\n);\n";
 
-        // índices que no sean la clave primaria
+        // índices: la introspección devuelve una fila por columna, así que agrupamos por
+        // nombre para reconstruir los índices compuestos con todas sus columnas
+        $indexes = [];
         foreach ($db->getAllIndexes($table) as $idx) {
-            if (empty($idx['name']) || empty($idx['column']) || isset($pkColumns[$idx['column']])) {
+            if (empty($idx['name']) || empty($idx['column'])) {
                 continue;
             }
-            $sql .= 'CREATE INDEX ' . $idx['name'] . ' ON ' . $db->escapeColumn($table)
-                . ' (' . $db->escapeColumn($idx['column']) . ");\n";
+            $indexes[$idx['name']][$idx['column']] = $db->escapeColumn($idx['column']);
+        }
+        foreach ($indexes as $idxName => $idxColumns) {
+            // omitimos el índice de la clave primaria (todas sus columnas son de la PK)
+            if (empty(array_diff_key($idxColumns, $pkColumns))) {
+                continue;
+            }
+            $sql .= 'CREATE INDEX ' . $idxName . ' ON ' . $db->escapeColumn($table)
+                . ' (' . implode(', ', $idxColumns) . ");\n";
         }
 
-        // recogemos las claves foráneas para emitirlas al final
+        // recogemos las claves foráneas para emitirlas al final, agrupando también
+        // por nombre para no emitir una constraint por columna en claves compuestas
+        $foreignKeys = [];
         foreach ($constraints as $con) {
-            if (strtoupper($con['type'] ?? '') === 'FOREIGN KEY' && !empty($con['foreign_table_name'])) {
-                $deferredSql[] = 'ALTER TABLE ' . $db->escapeColumn($table)
-                    . ' ADD CONSTRAINT ' . $con['name']
-                    . ' FOREIGN KEY (' . $db->escapeColumn($con['column_name']) . ')'
-                    . ' REFERENCES ' . $db->escapeColumn($con['foreign_table_name'])
-                    . ' (' . $db->escapeColumn($con['foreign_column_name']) . ');';
+            if (strtoupper($con['type'] ?? '') !== 'FOREIGN KEY' || empty($con['foreign_table_name'])) {
+                continue;
             }
+            $name = $con['name'];
+            if (!isset($foreignKeys[$name])) {
+                $foreignKeys[$name] = ['table' => $con['foreign_table_name'], 'columns' => [], 'foreign' => []];
+            }
+            $foreignKeys[$name]['columns'][$con['column_name']] = $db->escapeColumn($con['column_name']);
+            $foreignKeys[$name]['foreign'][$con['foreign_column_name']] = $db->escapeColumn($con['foreign_column_name']);
+        }
+        foreach ($foreignKeys as $name => $fk) {
+            $deferredSql[] = 'ALTER TABLE ' . $db->escapeColumn($table)
+                . ' ADD CONSTRAINT ' . $name
+                . ' FOREIGN KEY (' . implode(', ', $fk['columns']) . ')'
+                . ' REFERENCES ' . $db->escapeColumn($fk['table'])
+                . ' (' . implode(', ', $fk['foreign']) . ');';
         }
 
         return $sql . "\n";
