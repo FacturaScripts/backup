@@ -114,14 +114,15 @@ class BackupSQL
         // cabecera del volcado
         fwrite($handle, static::dumpHeader($db, $type));
 
-        // las claves foráneas se emiten al final (necesario en postgresql para evitar
-        // problemas de orden entre tablas; en mysql van inline en el SHOW CREATE TABLE)
-        $deferredForeignKeys = [];
+        // sentencias que se emiten al final del volcado: claves foráneas (necesario en
+        // postgresql para evitar problemas de orden entre tablas; en mysql van inline en
+        // el SHOW CREATE TABLE) y setval() de las secuencias, que debe ir tras los datos
+        $deferredSql = [];
 
         foreach ($db->getTables() as $table) {
             // estructura de la tabla; si está vacía es una vista u otro objeto que no es
             // tabla, y no volcamos sus datos (romperían la restauración)
-            $structure = static::tableStructure($db, $type, $table, $deferredForeignKeys);
+            $structure = static::tableStructure($db, $type, $table, $deferredSql);
             if ($structure === '') {
                 continue;
             }
@@ -131,9 +132,9 @@ class BackupSQL
             static::tableData($db, $table, $handle);
         }
 
-        // claves foráneas diferidas
-        foreach ($deferredForeignKeys as $fkSql) {
-            fwrite($handle, $fkSql . "\n");
+        // sentencias diferidas
+        foreach ($deferredSql as $sql) {
+            fwrite($handle, $sql . "\n");
         }
 
         fclose($handle);
@@ -502,6 +503,14 @@ class BackupSQL
     }
 
     /**
+     * Indica si una columna de postgresql es de tipo serie (default nextval de una secuencia).
+     */
+    private static function isSerialColumn(array $col): bool
+    {
+        return isset($col['default']) && is_string($col['default']) && stripos($col['default'], 'nextval(') !== false;
+    }
+
+    /**
      * Define una columna para el CREATE TABLE de postgresql.
      */
     private static function postgresqlColumnDef(array $col): string
@@ -509,7 +518,7 @@ class BackupSQL
         $type = $col['type'];
 
         // columnas serie: si el default es nextval(...), usamos SERIAL/BIGSERIAL
-        $isSerial = isset($col['default']) && is_string($col['default']) && stripos($col['default'], 'nextval(') !== false;
+        $isSerial = static::isSerialColumn($col);
         if ($isSerial) {
             $def = (stripos($type, 'big') !== false) ? 'BIGSERIAL' : 'SERIAL';
         } elseif (!empty($col['character_maximum_length']) && stripos($type, 'char') !== false) {
@@ -531,9 +540,10 @@ class BackupSQL
 
     /**
      * Estructura de tabla en postgresql reconstruida desde la introspección del core.
-     * Las claves foráneas se acumulan en $deferredForeignKeys para emitirlas al final.
+     * Las claves foráneas y los setval() de secuencias se acumulan en $deferredSql
+     * para emitirlos al final del volcado (los setval deben ir tras los datos).
      */
-    private static function postgresqlTableStructure(DataBase $db, string $table, array &$deferredForeignKeys): string
+    private static function postgresqlTableStructure(DataBase $db, string $table, array &$deferredSql): string
     {
         $columns = $db->getColumns($table);
         if (empty($columns)) {
@@ -543,6 +553,13 @@ class BackupSQL
         $defs = [];
         foreach ($columns as $col) {
             $defs[] = '  ' . $db->escapeColumn($col['name']) . ' ' . static::postgresqlColumnDef($col);
+
+            // las columnas serie se recrean como SERIAL, cuya secuencia arranca en 1:
+            // hay que avanzarla tras insertar los datos o el siguiente INSERT colisiona
+            if (static::isSerialColumn($col)) {
+                $deferredSql[] = "SELECT setval(pg_get_serial_sequence('" . $table . "', '" . $col['name'] . "'),"
+                    . ' COALESCE((SELECT MAX(' . $db->escapeColumn($col['name']) . ') FROM ' . $db->escapeColumn($table) . '), 0) + 1, false);';
+            }
         }
 
         $constraints = $db->getConstraints($table, true);
@@ -576,7 +593,7 @@ class BackupSQL
         // recogemos las claves foráneas para emitirlas al final
         foreach ($constraints as $con) {
             if (strtoupper($con['type'] ?? '') === 'FOREIGN KEY' && !empty($con['foreign_table_name'])) {
-                $deferredForeignKeys[] = 'ALTER TABLE ' . $db->escapeColumn($table)
+                $deferredSql[] = 'ALTER TABLE ' . $db->escapeColumn($table)
                     . ' ADD CONSTRAINT ' . $con['name']
                     . ' FOREIGN KEY (' . $db->escapeColumn($con['column_name']) . ')'
                     . ' REFERENCES ' . $db->escapeColumn($con['foreign_table_name'])
@@ -655,12 +672,12 @@ class BackupSQL
      * Devuelve el DDL de la estructura de una tabla. En mysql/mariadb usa SHOW CREATE TABLE;
      * en postgresql lo reconstruye desde la introspección del core.
      */
-    private static function tableStructure(DataBase $db, string $type, string $table, array &$deferredForeignKeys): string
+    private static function tableStructure(DataBase $db, string $type, string $table, array &$deferredSql): string
     {
         if ($type === 'mysql') {
             return static::mysqlTableStructure($db, $table);
         }
 
-        return static::postgresqlTableStructure($db, $table, $deferredForeignKeys);
+        return static::postgresqlTableStructure($db, $table, $deferredSql);
     }
 }

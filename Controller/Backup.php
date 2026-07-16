@@ -612,17 +612,22 @@ class Backup extends Controller
 			}
 		}
 
-		// eliminamos todas las tablas
-		$this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
+		// eliminamos todas las tablas; en postgresql no existe FOREIGN_KEY_CHECKS
+		// y hace falta CASCADE para romper las dependencias entre claves foráneas
+		$isPostgresql = Tools::config('db_type') === 'postgresql';
+		if (false === $isPostgresql) {
+			$this->dataBase->exec('SET FOREIGN_KEY_CHECKS=0');
+		}
 		foreach ($this->dataBase->getTables() as $table) {
-			$this->dataBase->exec('DROP TABLE ' . $table);
+			$sql = 'DROP TABLE ' . $this->dataBase->escapeColumn($table);
+			$this->dataBase->exec($isPostgresql ? $sql . ' CASCADE' : $sql);
 		}
 		$this->dataBase->close();
 
 		// importamos el backup con nuestro propio importador (no la librería vendor,
 		// que parte el SQL por ";\n" y corrompe los valores con HTML/CSS/multilínea)
 		try {
-			$driver = Tools::config('db_type') === 'postgresql' ? 'pgsql' : 'mysql';
+			$driver = $isPostgresql ? 'pgsql' : 'mysql';
 			$dsn = $driver . ':host=' . Tools::config('db_host') . ';port=' . Tools::config('db_port') . ';dbname=' . Tools::config('db_name');
 			$db = new PDO($dsn, Tools::config('db_user'), Tools::config('db_pass'));
 			$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
