@@ -119,8 +119,13 @@ class BackupSQL
         $deferredForeignKeys = [];
 
         foreach ($db->getTables() as $table) {
-            // estructura de la tabla
-            fwrite($handle, static::tableStructure($db, $type, $table, $deferredForeignKeys));
+            // estructura de la tabla; si está vacía es una vista u otro objeto que no es
+            // tabla, y no volcamos sus datos (romperían la restauración)
+            $structure = static::tableStructure($db, $type, $table, $deferredForeignKeys);
+            if ($structure === '') {
+                continue;
+            }
+            fwrite($handle, $structure);
 
             // datos de la tabla (en streaming, paginado para no agotar memoria)
             static::tableData($db, $table, $handle);
@@ -458,6 +463,21 @@ class BackupSQL
     }
 
     /**
+     * Devuelve las columnas (escapadas) de la clave primaria de una tabla, en ambos motores.
+     */
+    private static function primaryKeyColumns(DataBase $db, string $table): array
+    {
+        $columns = [];
+        foreach ($db->getConstraints($table, true) as $con) {
+            if (strtoupper($con['type'] ?? '') === 'PRIMARY KEY' && !empty($con['column_name'])) {
+                $columns[$con['column_name']] = $db->escapeColumn($con['column_name']);
+            }
+        }
+
+        return array_values($columns);
+    }
+
+    /**
      * Estructura de tabla en mysql/mariadb mediante SHOW CREATE TABLE (exacto).
      */
     private static function mysqlTableStructure(DataBase $db, string $table): string
@@ -585,12 +605,18 @@ class BackupSQL
         $intoPrefix = 'INSERT INTO ' . $db->escapeColumn($table)
             . ' (' . implode(', ', $escapedCols) . ') VALUES ';
 
+        // ordenamos por la clave primaria (o por todas las columnas si no hay) para que la
+        // paginación sea determinista: sin ORDER BY el motor no garantiza el mismo orden
+        // entre páginas y pueden duplicarse u omitirse filas en el volcado
+        $orderCols = static::primaryKeyColumns($db, $table) ?: $escapedCols;
+        $sql = 'SELECT * FROM ' . $db->escapeColumn($table) . ' ORDER BY ' . implode(', ', $orderCols);
+
         $pageSize = 1000;
         $offset = 0;
         $maxBuffer = 1000000;
 
         while (true) {
-            $rows = $db->selectLimit('SELECT * FROM ' . $db->escapeColumn($table), $pageSize, $offset);
+            $rows = $db->selectLimit($sql, $pageSize, $offset);
             if (empty($rows)) {
                 break;
             }
