@@ -84,16 +84,16 @@ class BackupFile
                 RecursiveIteratorIterator::LEAVES_ONLY
             );
 
-            foreach ($files as $name => $file) {
-                if ($file->isDir() || substr($name, -4) === '.zip') {
+            foreach ($files as $file) {
+                if ($file->isDir()) {
                     continue;
                 }
 
                 $filePath = $file->getRealPath();
                 $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', substr($filePath, strlen(FS_FOLDER) + 1));
 
-                // excluimos algunas carpetas
-                $exclude = ['MyFiles/Backups', 'MyFiles/Cache', 'MyFiles/Tmp', 'Dinamic'];
+                // excluimos algunas carpetas (con '/' final para no excluir otras con el mismo prefijo)
+                $exclude = ['MyFiles/Backups/', 'MyFiles/Cache/', 'MyFiles/Tmp/', 'Dinamic/'];
                 foreach ($exclude as $folder) {
                     if (strpos($relativePath, $folder) === 0) {
                         continue 2;

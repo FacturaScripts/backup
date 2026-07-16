@@ -53,6 +53,9 @@ final class BackupFileTest extends TestCase
         Tools::folderCheckOrCreate($markerPath);
         file_put_contents($markerPath . DIRECTORY_SEPARATOR . 'marker.txt', self::$markerContent);
 
+        // también un archivo .zip del usuario, que debe incluirse en la copia
+        file_put_contents($markerPath . DIRECTORY_SEPARATOR . 'marker.zip', self::$markerContent);
+
         // capturamos los archivos .zip existentes antes de generar el backup
         $folder = Tools::folder('MyFiles', 'Backups');
         if (is_dir($folder)) {
@@ -204,21 +207,18 @@ final class BackupFileTest extends TestCase
         $zip->close();
     }
 
-    public function testZipExcludesZipFiles(): void
+    public function testZipIncludesUserZipFiles(): void
     {
         $this->assertNotEmpty(self::$zipFile, 'No se generó ningún archivo ZIP');
 
         $zip = new ZipArchive();
         $this->assertNotFalse($zip->open(self::$zipFile), 'No se pudo abrir el archivo ZIP');
 
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            $this->assertStringEndsNotWith(
-                '.zip',
-                $name,
-                "El ZIP contiene un archivo .zip en su interior: $name"
-            );
-        }
+        // los archivos .zip del usuario (fuera de las carpetas excluidas) deben estar en la copia
+        $this->assertNotFalse(
+            $zip->locateName('MyFiles/' . self::$markerDir . '/marker.zip'),
+            'El backup no contiene el archivo .zip del usuario'
+        );
 
         $zip->close();
     }

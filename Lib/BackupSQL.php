@@ -45,7 +45,15 @@ class BackupSQL
             return '';
         }
 
-        $newFilePath = Tools::folder('temp.sql');
+        // escribimos en MyFiles/Tmp con nombre único: la raíz de la instalación puede ser
+        // accesible por web, y un nombre fijo colisiona entre restauraciones concurrentes
+        $tmpFolder = Tools::folder('MyFiles', 'Tmp');
+        if (false === Tools::folderCheckOrCreate($tmpFolder)) {
+            fclose($file);
+            return $filePath;
+        }
+
+        $newFilePath = Tools::folder('MyFiles', 'Tmp', uniqid('restore-', true) . '.sql');
         $newFile = fopen($newFilePath, 'w');
         if (false === $newFile) {
             fclose($file);

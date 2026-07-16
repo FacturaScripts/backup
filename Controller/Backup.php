@@ -312,8 +312,8 @@ class Backup extends Controller
 		}
 
 		if ($db_file) {
-			$db_file_path = Tools::folder('MyFiles', 'Backups', $db_file);
-			if (false === file_exists($db_file_path)) {
+			$db_file_path = $this->getBackupFilePath($db_file, ['sql']);
+			if (empty($db_file_path) || false === file_exists($db_file_path)) {
 				Tools::log()->error('file-not-found');
 				return;
 			}
@@ -322,8 +322,8 @@ class Backup extends Controller
 		}
 
 		if ($zip_file) {
-			$zip_file_path = Tools::folder('MyFiles', 'Backups', $zip_file);
-			if (false === file_exists($zip_file_path)) {
+			$zip_file_path = $this->getBackupFilePath($zip_file, ['zip']);
+			if (empty($zip_file_path) || false === file_exists($zip_file_path)) {
 				Tools::log()->error('file-not-found');
 				return;
 			}
@@ -349,8 +349,8 @@ class Backup extends Controller
 			return;
 		}
 
-		$file_path = Tools::folder('MyFiles', 'Backups', $file_name);
-		if (false === file_exists($file_path)) {
+		$file_path = $this->getBackupFilePath($file_name, ['sql']);
+		if (empty($file_path) || false === file_exists($file_path)) {
 			Tools::log()->error('file-not-found');
 			return;
 		}
@@ -374,14 +374,32 @@ class Backup extends Controller
 			return;
 		}
 
-		$file_path = Tools::folder('MyFiles', 'Backups', $file_name);
-		if (false === file_exists($file_path)) {
+		$file_path = $this->getBackupFilePath($file_name, ['zip']);
+		if (empty($file_path) || false === file_exists($file_path)) {
 			Tools::log()->error('file-not-found');
 			return;
 		}
 
 		$this->setTemplate(false);
 		$this->response->file($file_path, Tools::config('db_name') . '_' . $file_name, 'attachment');
+	}
+
+	/**
+	 * Devuelve la ruta del archivo dentro de MyFiles/Backups, o cadena vacía si el nombre
+	 * no es un nombre de archivo simple con extensión permitida (evita path traversal).
+	 */
+	private function getBackupFilePath(string $fileName, array $extensions): string
+	{
+		if (strpos($fileName, '/') !== false || strpos($fileName, '\\') !== false || strpos($fileName, '..') !== false) {
+			return '';
+		}
+
+		$extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+		if (false === in_array($extension, $extensions, true)) {
+			return '';
+		}
+
+		return Tools::folder('MyFiles', 'Backups', $fileName);
 	}
 
 	private function getMemoryLimitMb(): int
@@ -669,7 +687,7 @@ class Backup extends Controller
 		}
 
 		$zip = new ZipArchive();
-		if (false === $zip->open($zipFile->getPathname())) {
+		if (true !== $zip->open($zipFile->getPathname())) {
 			Tools::log()->error('zip error');
 			return;
 		}
