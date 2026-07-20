@@ -25,6 +25,35 @@ use ReflectionClass;
 
 final class BackupControllerTest extends TestCase
 {
+    public function testParseBackupFileNameAcceptsValidNames(): void
+    {
+        $this->assertSame([
+            'day' => '2026-07-20',
+            'extension' => 'sql',
+            'key' => '2026-07-20_14-30-59',
+        ], $this->parseBackupFileName('2026-07-20_14-30-59.sql'));
+
+        $this->assertSame([
+            'day' => '2024-02-29',
+            'extension' => 'zip',
+            'key' => '2024-02-29_00-00-00',
+        ], $this->parseBackupFileName('2024-02-29_00-00-00.ZIP'));
+    }
+
+    public function testParseBackupFileNameRejectsInvalidNames(): void
+    {
+        $invalidNames = [
+            '.backupauto_2026-07-20.sql',
+            '2026-02-29_14-30-59.sql',
+            '2026-07-20_24-00-00.sql',
+            '2026-07-20_14-30-59.txt',
+        ];
+
+        foreach ($invalidNames as $fileName) {
+            $this->assertSame([], $this->parseBackupFileName($fileName));
+        }
+    }
+
     public function testSetConfigConstantUpdatesExistingDefinition(): void
     {
         $config = "<?php\ndefine(\"FS_MYSQL_CHARSET\", \"utf8\");\n";
@@ -67,5 +96,15 @@ final class BackupControllerTest extends TestCase
         $method->setAccessible(true);
 
         return $method->invoke($controller, $config, $name, $value);
+    }
+
+    private function parseBackupFileName(string $fileName): array
+    {
+        $reflection = new ReflectionClass(Backup::class);
+        $controller = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('parseBackupFileName');
+        $method->setAccessible(true);
+
+        return $method->invoke($controller, $fileName);
     }
 }

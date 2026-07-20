@@ -437,22 +437,13 @@ class Backup extends Controller
 		$grouped = [];
 
 		foreach (Tools::folderScan($folder) as $file) {
-			// solo procesamos archivos .zip o .sql, el resto los ignoramos
-			$extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-			if (false === in_array($extension, ['zip', 'sql'], true)) {
+			$fileData = $this->parseBackupFileName($file);
+			if (empty($fileData)) {
 				continue;
 			}
 
-			// la clave del día es la parte antes del primer guion bajo (YYYYMMDD)
-			$underscorePos = strpos($file, '_');
-			if (false === $underscorePos) {
-				continue;
-			}
-			$dayKey = substr($file, 0, $underscorePos);
-
-			// la clave del archivo es el nombre sin extensión (para emparejar sql y zip del mismo momento)
-			$dotPos = strpos($file, '.');
-			$fileKey = false !== $dotPos ? substr($file, 0, $dotPos) : $file;
+			$dayKey = $fileData['day'];
+			$fileKey = $fileData['key'];
 
 			if (!isset($grouped[$dayKey])) {
 				$grouped[$dayKey] = [];
@@ -468,10 +459,10 @@ class Backup extends Controller
 				];
 			}
 
-			if (substr($file, -4) === '.sql') {
+			if ($fileData['extension'] === 'sql') {
 				$grouped[$dayKey][$fileKey]['sql_file'] = $file;
 				$grouped[$dayKey][$fileKey]['sql_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
-			} elseif (substr($file, -4) === '.zip') {
+			} else {
 				$grouped[$dayKey][$fileKey]['zip_file'] = $file;
 				$grouped[$dayKey][$fileKey]['zip_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
 			}
@@ -487,6 +478,29 @@ class Backup extends Controller
 		}
 
 		$this->backup_list = $grouped;
+	}
+
+	private function parseBackupFileName(string $file): array
+	{
+		$matches = [];
+		$pattern = '/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})\.(sql|zip)$/i';
+		if (1 !== preg_match($pattern, $file, $matches)) {
+			return [];
+		}
+
+		if (false === checkdate((int)$matches[2], (int)$matches[3], (int)$matches[1])) {
+			return [];
+		}
+
+		if ((int)$matches[4] > 23 || (int)$matches[5] > 59 || (int)$matches[6] > 59) {
+			return [];
+		}
+
+		return [
+			'day' => substr($file, 0, 10),
+			'extension' => strtolower($matches[7]),
+			'key' => substr($file, 0, -4),
+		];
 	}
 
 	private function moveFiles(): void
