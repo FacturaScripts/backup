@@ -30,8 +30,6 @@ use FacturaScripts\Dinamic\Lib\BackupFile;
 use FacturaScripts\Dinamic\Lib\BackupSQL;
 use FacturaScripts\Dinamic\Model\User;
 use PDO;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use Throwable;
 use ZipArchive;
 
@@ -138,10 +136,6 @@ class Backup extends Controller
 
 			case 'switch-db-charset':
 				$this->switchDbCharsetAction();
-				break;
-
-			default:
-				$this->defaultChecks();
 				break;
 		}
 
@@ -264,38 +258,6 @@ class Backup extends Controller
 		Tools::log()->error('record-save-error');
 	}
 
-	private function defaultChecks(): void
-	{
-		// obtenemos el límite de memoria
-		$memoryMb = $this->getMemoryLimitMb();
-		if ($memoryMb === -1) {
-			return;
-		}
-
-		// calculamos el tamaño de la carpeta FS_FOLDER
-		$folderSize = 0;
-		$files = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator(FS_FOLDER),
-			RecursiveIteratorIterator::LEAVES_ONLY
-		);
-		foreach ($files as $file) {
-			if ($file->isDir()) {
-				continue;
-			}
-
-			$folderSize += $file->getSize();
-		}
-		$folderMb = round($folderSize / 1024 / 1024, 2);
-
-		// si la carpeta FS_FOLDER ocupa más que el límite de memoria, mostramos un aviso
-		if ($folderMb >= $memoryMb) {
-			Tools::log()->warning('backup-memory-warning', [
-				'%size%' => $folderMb,
-				'%memory%' => $memoryMb
-			]);
-		}
-	}
-
 	private function deleteBackupAction(): void
 	{
 		if ($this->permissions->allowDelete === false) {
@@ -401,28 +363,6 @@ class Backup extends Controller
 		}
 
 		return Tools::folder('MyFiles', 'Backups', $fileName);
-	}
-
-	private function getMemoryLimitMb(): int
-	{
-		$memoryLimit = ini_get('memory_limit');
-		if ($memoryLimit === '-1') {
-			return -1;
-		}
-
-		switch (substr($memoryLimit, -1)) {
-			case 'G':
-				return substr($memoryLimit, 0, -1) * 1024;
-
-			case 'M':
-				return substr($memoryLimit, 0, -1);
-
-			case 'K':
-				return round(substr($memoryLimit, 0, -1) / 1024, 2);
-
-			default:
-				return (int)$memoryLimit;
-		}
 	}
 
 	protected function loadBackupFiles(): void
