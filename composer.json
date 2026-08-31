@@ -9,12 +9,12 @@
   ],
   "config": {
     "platform": {
-      "php": "8.0"
+      "php": "8.1"
     }
   },
   "require": {
     "ext-mbstring": "*",
     "ext-zip": "*",
-    "maennchen/zipstream-php": "^2.4 || ^3.0"
+    "maennchen/zipstream-php": "^3.0"
   }
 }
