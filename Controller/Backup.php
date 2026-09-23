@@ -309,7 +309,7 @@ class Backup extends Controller
 			return;
 		}
 
-		$file_name = $this->request->input('file_name', '');
+		$file_name = $this->request->query('file_name', '');
 		if (empty($file_name)) {
 			Tools::log()->warning('no-file-received');
 			return;
@@ -334,7 +334,7 @@ class Backup extends Controller
 			return;
 		}
 
-		$file_name = $this->request->input('file_name', '');
+		$file_name = $this->request->query('file_name', '');
 		if (empty($file_name)) {
 			Tools::log()->warning('no-file-received');
 			return;

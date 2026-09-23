@@ -47,7 +47,6 @@
 						<form action="{{ fsc.url() }}" id="f_download" method="post">
 							{{ formToken() }}
 							<input type="hidden" name="action">
-							<input type="hidden" name="file_name">
 							<div class="card shadow mb-4">
 								<div class="card-body">
 									<h2 class="h3">
@@ -102,7 +101,7 @@
 														<tr>
 															<td>
 																{% if backup.sql_file %}
-																	<a href="#" onclick="downloadBackupAction('download-sql-file','{{ backup.sql_file }}')">
+																	<a href="{{ fsc.url() }}?action=download-sql-file&amp;file_name={{ backup.sql_file }}&amp;multireqtoken={{ formToken(false) }}">
 																		<i class="fa-solid fa-database me-1"></i>
 																		{{ backup.sql_file }}
 																	</a>
@@ -119,7 +118,7 @@
 															</td>
 															<td>
 																{% if backup.zip_file %}
-																	<a href="#" onclick="downloadBackupAction('download-zip-file','{{ backup.zip_file }}')">
+																	<a href="{{ fsc.url() }}?action=download-zip-file&amp;file_name={{ backup.zip_file }}&amp;multireqtoken={{ formToken(false) }}">
 																		<i class="fa-solid fa-box-archive me-1"></i>
 																		{{ backup.zip_file }}
 																	</a>
@@ -402,13 +401,6 @@
 			let form = $('#f_delete_backup');
 			form.find('input[name="db_file"]').val(db_file);
 			form.find('input[name="zip_file"]').val(zip_file);
-			form.submit();
-		}
-
-		function downloadBackupAction(action, file_name = '') {
-			let form = $('#f_download');
-			form.find('input[name="action"]').val(action);
-			form.find('input[name="file_name"]').val(file_name);
 			form.submit();
 		}
 
