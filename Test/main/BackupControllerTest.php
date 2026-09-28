@@ -19,12 +19,20 @@
 
 namespace FacturaScripts\Test\Plugins;
 
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Plugins\Backup\Controller\Backup;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ZipArchive;
 
 final class BackupControllerTest extends TestCase
 {
+    /** @var string carpeta de MyFiles creada por los tests de restauración */
+    private string $restoreDir = '';
+
+    /** @var string archivo ZIP temporal creado por los tests de restauración */
+    private string $zipPath = '';
+
     public function testParseBackupFileNameAcceptsValidNames(): void
     {
         $this->assertSame([
@@ -52,6 +60,50 @@ final class BackupControllerTest extends TestCase
         foreach ($invalidNames as $fileName) {
             $this->assertSame([], $this->parseBackupFileName($fileName));
         }
+    }
+
+    public function testRestoreFilesFromZipCleansUpAfterExtractError(): void
+    {
+        // «a» es un archivo, así que «a/b» no se puede extraer y extractTo() falla a mitad
+        $this->createZip(['a' => 'x', 'a/b' => 'y']);
+
+        // ignoramos el warning de extractTo() para comprobar la limpieza posterior
+        set_error_handler(fn() => true, E_WARNING);
+        try {
+            $result = $this->restoreFilesFromZip($this->zipPath);
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertFalse($result);
+        $this->assertDirectoryDoesNotExist(Tools::folder('MyFiles', 'Tmp', 'zip_backup'));
+    }
+
+    public function testRestoreFilesFromZipCopiesMissingFolders(): void
+    {
+        $this->createZip(['MyFiles/' . $this->restoreDir . '/file.txt' => 'restored']);
+
+        $this->assertTrue($this->restoreFilesFromZip($this->zipPath));
+        $this->assertSame('restored', file_get_contents(Tools::folder('MyFiles', $this->restoreDir, 'file.txt')));
+        $this->assertDirectoryDoesNotExist(Tools::folder('MyFiles', 'Tmp', 'zip_backup'));
+    }
+
+    public function testRestoreFilesFromZipKeepsExistingFolders(): void
+    {
+        Tools::folderCheckOrCreate(Tools::folder('MyFiles', $this->restoreDir));
+        file_put_contents(Tools::folder('MyFiles', $this->restoreDir, 'file.txt'), 'current');
+        $this->createZip(['MyFiles/' . $this->restoreDir . '/file.txt' => 'restored']);
+
+        $this->assertTrue($this->restoreFilesFromZip($this->zipPath));
+        $this->assertSame('current', file_get_contents(Tools::folder('MyFiles', $this->restoreDir, 'file.txt')));
+    }
+
+    public function testRestoreFilesFromZipRejectsInvalidZip(): void
+    {
+        file_put_contents($this->zipPath, 'not a zip file');
+
+        $this->assertFalse($this->restoreFilesFromZip($this->zipPath));
+        $this->assertDirectoryDoesNotExist(Tools::folder('MyFiles', 'Tmp', 'zip_backup'));
     }
 
     public function testSetConfigConstantUpdatesExistingDefinition(): void
@@ -98,6 +150,32 @@ final class BackupControllerTest extends TestCase
         return $method->invoke($controller, $config, $name, $value);
     }
 
+    protected function setUp(): void
+    {
+        $this->restoreDir = 'BackupControllerTest_' . substr(md5(uniqid('', true)), 0, 8);
+        $this->zipPath = Tools::folder('MyFiles', 'Tmp', $this->restoreDir . '.zip');
+        Tools::folderCheckOrCreate(Tools::folder('MyFiles', 'Tmp'));
+    }
+
+    protected function tearDown(): void
+    {
+        Tools::folderDelete(Tools::folder('MyFiles', $this->restoreDir));
+        Tools::folderDelete(Tools::folder('MyFiles', 'Tmp', 'zip_backup'));
+        if (file_exists($this->zipPath)) {
+            unlink($this->zipPath);
+        }
+    }
+
+    private function createZip(array $entries): void
+    {
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($this->zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+        foreach ($entries as $name => $content) {
+            $zip->addFromString($name, $content);
+        }
+        $zip->close();
+    }
+
     private function parseBackupFileName(string $fileName): array
     {
         $reflection = new ReflectionClass(Backup::class);
@@ -106,5 +184,15 @@ final class BackupControllerTest extends TestCase
         $method->setAccessible(true);
 
         return $method->invoke($controller, $fileName);
+    }
+
+    private function restoreFilesFromZip(string $zipPath): bool
+    {
+        $reflection = new ReflectionClass(Backup::class);
+        $controller = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('restoreFilesFromZip');
+        $method->setAccessible(true);
+
+        return $method->invoke($controller, $zipPath);
     }
 }

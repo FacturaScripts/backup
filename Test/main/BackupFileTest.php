@@ -20,9 +20,11 @@
 namespace FacturaScripts\Test\Plugins;
 
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Plugins\Backup\Controller\Backup;
 use FacturaScripts\Plugins\Backup\Lib\BackupFile;
 use FacturaScripts\Test\Traits\LogErrorsTrait;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use ZipArchive;
 
 /**
@@ -84,7 +86,7 @@ final class BackupFileTest extends TestCase
         if (!empty(self::$markerDir)) {
             Tools::folderDelete(Tools::folder('MyFiles', self::$markerDir));
         }
-        Tools::folderDelete(Tools::folder('zip_backup'));
+        Tools::folderDelete(Tools::folder('MyFiles', 'Tmp', 'zip_backup'));
     }
 
     public function testGenerateCreatesBackupsFolder(): void
@@ -242,37 +244,16 @@ final class BackupFileTest extends TestCase
     }
 
     /**
-     * Restaura los archivos desde un ZIP replicando el flujo del controlador:
-     * extrae el ZIP en una carpeta temporal y copia las carpetas que falten en MyFiles.
+     * Restaura los archivos desde un ZIP con el mismo método que usa el controlador.
      */
     private function restoreFilesFromZip(string $zipPath): void
     {
-        $zip = new ZipArchive();
-        $this->assertNotFalse($zip->open($zipPath), 'No se pudo abrir el ZIP para restaurar');
+        $reflection = new ReflectionClass(Backup::class);
+        $controller = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('restoreFilesFromZip');
+        $method->setAccessible(true);
 
-        // extraemos el contenido en una carpeta temporal limpia
-        Tools::folderDelete(Tools::folder('zip_backup'));
-        $this->assertTrue($zip->extractTo(Tools::folder('zip_backup')), 'No se pudo extraer el ZIP');
-        $zip->close();
-
-        // copiamos las carpetas de MyFiles que falten (igual que Controller\Backup::moveFiles)
-        $myFilesSrc = Tools::folder('zip_backup', 'MyFiles');
-        if (is_dir($myFilesSrc)) {
-            foreach (Tools::folderScan($myFilesSrc) as $file) {
-                $dest = Tools::folder('MyFiles', $file);
-                if (file_exists($dest)) {
-                    continue;
-                }
-
-                $src = Tools::folder('zip_backup', 'MyFiles', $file);
-                if (is_dir($src)) {
-                    Tools::folderCopy($src, $dest);
-                }
-            }
-        }
-
-        // eliminamos la carpeta temporal
-        Tools::folderDelete(Tools::folder('zip_backup'));
+        $this->assertTrue($method->invoke($controller, $zipPath), 'No se pudieron restaurar los archivos del ZIP');
     }
 
     protected function tearDown(): void

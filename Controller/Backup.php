@@ -468,17 +468,17 @@ class Backup extends Controller
 		];
 	}
 
-	private function moveFiles(): void
+	private function moveFiles(string $folder): void
 	{
 		// si existe la carpeta Plugins, copiamos los archivos a la carpeta correspondiente
-		if (is_dir(Tools::folder('zip_backup', 'Plugins'))) {
-			foreach (Tools::folderScan(Tools::folder('zip_backup', 'Plugins')) as $file) {
+		if (is_dir(Tools::folder($folder, 'Plugins'))) {
+			foreach (Tools::folderScan(Tools::folder($folder, 'Plugins')) as $file) {
 				$dest = Tools::folder('Plugins', $file);
 				if (file_exists($dest)) {
 					continue;
 				}
 
-				$src = Tools::folder('zip_backup', 'Plugins', $file);
+				$src = Tools::folder($folder, 'Plugins', $file);
 				if (is_dir($src)) {
 					Tools::folderCopy($src, $dest);
 				} elseif (is_file($src)) {
@@ -488,14 +488,14 @@ class Backup extends Controller
 		}
 
 		// si existe la carpeta MyFiles, copiamos los archivos a la carpeta correspondiente
-		if (is_dir(Tools::folder('zip_backup', 'MyFiles'))) {
-			foreach (Tools::folderScan(Tools::folder('zip_backup', 'MyFiles')) as $file) {
+		if (is_dir(Tools::folder($folder, 'MyFiles'))) {
+			foreach (Tools::folderScan(Tools::folder($folder, 'MyFiles')) as $file) {
 				$dest = Tools::folder('MyFiles', $file);
 				if (file_exists($dest)) {
 					continue;
 				}
 
-				$src = Tools::folder('zip_backup', 'MyFiles', $file);
+				$src = Tools::folder($folder, 'MyFiles', $file);
 				if (is_dir($src)) {
 					Tools::folderCopy($src, $dest);
 				} elseif (is_file($src)) {
@@ -504,13 +504,13 @@ class Backup extends Controller
 			}
 		} else {
 			// no existe la carpeta MyFiles en el xip, así que copiamos los archivos a la carpeta MyFiles
-			foreach (Tools::folderScan(Tools::folder('zip_backup')) as $file) {
+			foreach (Tools::folderScan(Tools::folder($folder)) as $file) {
 				$dest = Tools::folder('MyFiles', $file);
 				if (file_exists($dest)) {
 					continue;
 				}
 
-				$src = Tools::folder('zip_backup', $file);
+				$src = Tools::folder($folder, $file);
 				if (is_dir($src)) {
 					Tools::folderCopy($src, $dest);
 				} elseif (is_file($src)) {
@@ -685,28 +685,39 @@ class Backup extends Controller
 			return;
 		}
 
+		if ($this->restoreFilesFromZip($zipFile->getPathname())) {
+			Tools::log()->notice('record-updated-correctly');
+		}
+	}
+
+	private function restoreFilesFromZip(string $zipPath): bool
+	{
 		$zip = new ZipArchive();
-		if (true !== $zip->open($zipFile->getPathname())) {
+		if (true !== $zip->open($zipPath)) {
 			Tools::log()->error('zip error');
-			return;
+			return false;
 		}
 
-		// si ya existe la carpeta zip_backup, la eliminamos
-		Tools::folderDelete(Tools::folder('zip_backup'));
+		// extraemos el contenido en una carpeta temporal limpia dentro de MyFiles/Tmp
+		$tmpFolder = Tools::folder('MyFiles', 'Tmp', 'zip_backup');
+		Tools::folderDelete($tmpFolder);
+		Tools::folderCheckOrCreate($tmpFolder);
 
-		// extraemos el contenido dentro de la carpeta zip_backup
-		if (false === $zip->extractTo(Tools::folder('zip_backup'))) {
+		if (false === $zip->extractTo($tmpFolder)) {
+			$zip->close();
+
+			// eliminamos lo que se haya podido extraer antes del error
+			Tools::folderDelete($tmpFolder);
 			Tools::log()->error('zip extract error');
-			return;
+			return false;
 		}
 		$zip->close();
 
-		$this->moveFiles();
+		$this->moveFiles($tmpFolder);
 
-		// eliminamos la carpeta zip_backup
-		Tools::folderDelete(Tools::folder('zip_backup'));
-
-		Tools::log()->notice('record-updated-correctly');
+		// eliminamos la carpeta temporal
+		Tools::folderDelete($tmpFolder);
+		return true;
 	}
 
 	private function switchDbCharsetAction(): void
