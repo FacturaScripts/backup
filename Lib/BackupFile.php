@@ -20,8 +20,11 @@
 namespace FacturaScripts\Plugins\Backup\Lib;
 
 use FacturaScripts\Core\Tools;
+use FilesystemIterator;
+use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use SplFileInfo;
 use Throwable;
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
@@ -31,6 +34,21 @@ use ZipStream\ZipStream;
  */
 class BackupFile
 {
+    /**
+     * Carpetas (relativas a la raíz, con '/' final) que no se incluyen en la copia.
+     * El '/' final evita excluir otras carpetas con el mismo prefijo.
+     *
+     * @var string[]
+     */
+    protected const EXCLUDED_FOLDERS = ['MyFiles/Backups/', 'MyFiles/Cache/', 'MyFiles/Tmp/', 'Dinamic/'];
+
+    /**
+     * Genera una copia de seguridad de los archivos en MyFiles/Backups.
+     *
+     * @param string $channel Canal de log donde se registran los mensajes.
+     *
+     * @return bool
+     */
     public static function generate(string $channel = ''): bool
     {
         $folder = Tools::folder('MyFiles', 'Backups');
@@ -41,7 +59,7 @@ class BackupFile
 
         // creamos un archivo
         $file_path = Tools::folder('MyFiles', 'Backups', date('Y-m-d_H-i-s') . '.zip');
-        if (false === static::zipFolder($file_path)) {
+        if (false === static::zipFolder($file_path, $channel)) {
             Tools::log($channel)->error('record-save-error');
             return false;
         }
@@ -54,7 +72,17 @@ class BackupFile
         return true;
     }
 
-    protected static function zipFolder(string $fileName): bool
+    /**
+     * Comprime la carpeta de FacturaScripts (o la indicada) en un zip, saltando las carpetas
+     * excluidas sin entrar en ellas y las carpetas o archivos que no se puedan leer.
+     *
+     * @param string $fileName Ruta del zip de destino.
+     * @param string $channel Canal de log donde se registran los errores.
+     * @param string|null $sourceFolder Carpeta a comprimir. Por defecto, FS_FOLDER.
+     *
+     * @return bool
+     */
+    protected static function zipFolder(string $fileName, string $channel = '', ?string $sourceFolder = null): bool
     {
         // abrimos un stream de escritura hacia el archivo destino
         $outputStream = fopen($fileName, 'wb');
@@ -79,9 +107,33 @@ class BackupFile
                 );
             }
 
+            $root = str_replace(DIRECTORY_SEPARATOR, '/', rtrim($sourceFolder ?? FS_FOLDER, '/\\'));
+
+            // SKIP_DOTS evita visitar '.' y '..' (que con open_basedir provoca un error)
+            $directory = new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS);
+
+            // podamos las carpetas excluidas sin entrar en ellas, y saltamos lo que no se pueda leer
+            $filtered = new RecursiveCallbackFilterIterator(
+                $directory,
+                function (SplFileInfo $current) use ($root): bool {
+                    if (false === is_readable($current->getPathname())) {
+                        return false;
+                    }
+
+                    if ($current->isDir()) {
+                        $relative = substr(str_replace(DIRECTORY_SEPARATOR, '/', $current->getPathname()), strlen($root) + 1);
+                        return false === in_array($relative . '/', static::EXCLUDED_FOLDERS, true);
+                    }
+
+                    return true;
+                }
+            );
+
+            // CATCH_GET_CHILD salta las subcarpetas que lancen excepción al abrirlas
             $files = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator(FS_FOLDER),
-                RecursiveIteratorIterator::LEAVES_ONLY
+                $filtered,
+                RecursiveIteratorIterator::LEAVES_ONLY,
+                RecursiveIteratorIterator::CATCH_GET_CHILD
             );
 
             foreach ($files as $file) {
@@ -89,22 +141,14 @@ class BackupFile
                     continue;
                 }
 
-                $filePath = $file->getRealPath();
-                $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', substr($filePath, strlen(FS_FOLDER) + 1));
-
-                // excluimos algunas carpetas (con '/' final para no excluir otras con el mismo prefijo)
-                $exclude = ['MyFiles/Backups/', 'MyFiles/Cache/', 'MyFiles/Tmp/', 'Dinamic/'];
-                foreach ($exclude as $folder) {
-                    if (strpos($relativePath, $folder) === 0) {
-                        continue 2;
-                    }
-                }
-
+                $filePath = $file->getPathname();
+                $relativePath = substr(str_replace(DIRECTORY_SEPARATOR, '/', $filePath), strlen($root) + 1);
                 $zip->addFileFromPath($relativePath, $filePath);
             }
 
             $zip->finish();
         } catch (Throwable $e) {
+            Tools::log($channel)->error('backup-files-error', ['%error%' => $e->getMessage()]);
             fclose($outputStream);
             return false;
         }
