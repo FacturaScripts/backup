@@ -13,6 +13,7 @@
     "download-backup-p": "scarica-backup-p",
     "file-ready-to-download": "File pronto per il download",
     "last-backup-more-30d": "L'ultima copia di sicurezza ha più di 30 giorni. Fai una nuova copia dal menu Amministratore, Copie di sicurezza.",
+    "max-backups": "Massimo di copie",
     "monthly-day": "Giorno del mese",
     "mysql-support-only": "Questo plugin funziona solo su MySQL",
     "new-admin-password": "Nuova password dell'amministratore",

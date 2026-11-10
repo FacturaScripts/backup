@@ -13,6 +13,7 @@
     "download-backup-p": "Pobierz kopię zapasową swojej bazy danych oraz plików. Przechowuj te pliki w bezpiecznym miejscu. Jeśli w przyszłości będziesz chciał przywrócić dane z FacturaScripts, będziesz potrzebować tych plików.",
     "file-ready-to-download": "Plik gotowy do pobrania",
     "last-backup-more-30d": "Ostatnia kopia zapasowa ma ponad 30 dni. Proszę utworzyć nową z menu Administrator, Kopie zapasowe.",
+    "max-backups": "Maksimum kopii",
     "monthly-day": "Dzień miesiąca",
     "mysql-support-only": "Ten wtyczka działa tylko na MySQL",
     "new-admin-password": "Nowe hasło administratora",

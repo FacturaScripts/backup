@@ -13,6 +13,7 @@
     "download-backup-p": "Deskargatu zure datu-basearen eta fitxategiaren segurtasun kopia bat. Gorde fitxategi hauek leku seguru batean. Noizbait FacturaScripts-eko datuak berreskuratu nahi badituzu, fitxategi hau beharko duzu.",
     "file-ready-to-download": "Fitxategia deskargatzeko prest",
     "last-backup-more-30d": "Azken babeskopia 30 egunetik gorakoa da. Joan Administratzaileen menura eta berria sortu.",
+    "max-backups": "Kopien gehienezkoa",
     "monthly-day": "Hilabeteko eguna",
     "mysql-support-only": "Plugin honek MySQL-en funtzionatzen du bakarrik",
     "new-admin-password": "Administratzailearen pasahitz berria",

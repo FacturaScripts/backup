@@ -13,6 +13,7 @@
     "download-backup-p": "Veritabanınızın ve dosyalarınızın yedek bir kopyasını indirin. Bu dosyaları güvenli bir yerde saklayın. FakturaScripts verilerinizi geri yüklemek istediğinizde bu dosyaları almanız gerekecek.",
     "file-ready-to-download": "İndirilmeye hazır dosya",
     "last-backup-more-30d": "Son yedekleme 30 günden daha fazla oldu. Lütfen Yöneticiden Yedekleme menüsünden yeni bir yedek alın.",
+    "max-backups": "Maksimum kopya",
     "monthly-day": "Ayın günü",
     "mysql-support-only": "Bu eklenti yalnızca MySQL üzerinde çalışır",
     "new-admin-password": "Yeni yönetici parolası",

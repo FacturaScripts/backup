@@ -13,6 +13,7 @@
     "download-backup-p": "Descarga unha copia de seguridade da túa base de datos e outra dos teus arquivos. Garda estes ficheiros nun lugar seguro. Se nalgún momento queres restaurar os datos de  FacturaScripts, necesitarás estes ficheiros.",
     "file-ready-to-download": "Arquivo listo para descargar",
     "last-backup-more-30d": "A última copia de seguridade ten máis de 30 días. Faga unha nova dende o menú Administrador, Copias de seguridade.",
+    "max-backups": "Máximo de copias",
     "monthly-day": "Día do mes",
     "mysql-support-only": "Este plugin só funciona sobre MySQL",
     "new-admin-password": "Novo contrasinal do administrador",

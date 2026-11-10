@@ -13,6 +13,7 @@
     "download-backup-p": "download-backup-p",
     "file-ready-to-download": "Arxiu llest per descarregar",
     "last-backup-more-30d": "L'última còpia de seguretat té més de 30 dies. Feu una nova des del menú Administrador, Còpies de seguretat.",
+    "max-backups": "Màxim de còpies",
     "monthly-day": "Dia del mes",
     "mysql-support-only": "Aquest plugin només funciona sobre MySQL",
     "new-admin-password": "Nova contrasenya de l'administrador",
