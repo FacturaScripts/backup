@@ -390,6 +390,10 @@ class Backup extends Controller
 		}
 	}
 
+	/**
+	 * Carga en backup_list las copias de MyFiles/Backups agrupadas por día y fecha.
+	 * Ignora los archivos con nombre no válido y los que no se pueden leer o han desaparecido.
+	 */
 	protected function loadBackupFiles(): void
 	{
 		// buscamos todos los archivos de la carpeta MyFiles/Backups
@@ -404,6 +408,14 @@ class Backup extends Controller
 		foreach (Tools::folderScan($folder) as $file) {
 			$fileData = $this->parseBackupFileName($file);
 			if (empty($fileData)) {
+				continue;
+			}
+
+			// leemos el tamaño sin avisos: el archivo puede haberse borrado (por ejemplo, por el cron)
+			// o no ser accesible entre el escaneo y la lectura, lo que lanzaba «stat failed» (errorcode 5431)
+			$filePath = Tools::folder('MyFiles', 'Backups', $file);
+			$fileSize = is_file($filePath) ? @filesize($filePath) : false;
+			if (false === $fileSize) {
 				continue;
 			}
 
@@ -426,10 +438,10 @@ class Backup extends Controller
 
 			if ($fileData['extension'] === 'sql') {
 				$grouped[$dayKey][$fileKey]['sql_file'] = $file;
-				$grouped[$dayKey][$fileKey]['sql_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+				$grouped[$dayKey][$fileKey]['sql_size'] = $fileSize;
 			} else {
 				$grouped[$dayKey][$fileKey]['zip_file'] = $file;
-				$grouped[$dayKey][$fileKey]['zip_size'] = filesize(Tools::folder('MyFiles', 'Backups', $file));
+				$grouped[$dayKey][$fileKey]['zip_size'] = $fileSize;
 			}
 		}
 
@@ -443,29 +455,6 @@ class Backup extends Controller
 		}
 
 		$this->backup_list = $grouped;
-	}
-
-	private function parseBackupFileName(string $file): array
-	{
-		$matches = [];
-		$pattern = '/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})\.(sql|zip)$/i';
-		if (1 !== preg_match($pattern, $file, $matches)) {
-			return [];
-		}
-
-		if (false === checkdate((int)$matches[2], (int)$matches[3], (int)$matches[1])) {
-			return [];
-		}
-
-		if ((int)$matches[4] > 23 || (int)$matches[5] > 59 || (int)$matches[6] > 59) {
-			return [];
-		}
-
-		return [
-			'day' => substr($file, 0, 10),
-			'extension' => strtolower($matches[7]),
-			'key' => substr($file, 0, -4),
-		];
 	}
 
 	private function moveFiles(string $folder): void
@@ -518,6 +507,29 @@ class Backup extends Controller
 				}
 			}
 		}
+	}
+
+	private function parseBackupFileName(string $file): array
+	{
+		$matches = [];
+		$pattern = '/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})\.(sql|zip)$/i';
+		if (1 !== preg_match($pattern, $file, $matches)) {
+			return [];
+		}
+
+		if (false === checkdate((int)$matches[2], (int)$matches[3], (int)$matches[1])) {
+			return [];
+		}
+
+		if ((int)$matches[4] > 23 || (int)$matches[5] > 59 || (int)$matches[6] > 59) {
+			return [];
+		}
+
+		return [
+			'day' => substr($file, 0, 10),
+			'extension' => strtolower($matches[7]),
+			'key' => substr($file, 0, -4),
+		];
 	}
 
 	private function restoreBackupAction(): void
@@ -720,6 +732,28 @@ class Backup extends Controller
 		return true;
 	}
 
+	private function setConfigConstant(string $configFile, string $name, string $value): string
+	{
+		$definition = "define('" . $name . "', '" . $value . "');";
+		$pattern = "/define\\s*\\(\\s*(['\"])" . preg_quote($name, '/')
+			. "\\1\\s*,\\s*(['\"])[^'\"]*\\2\\s*\\)\\s*;/";
+
+		if (preg_match($pattern, $configFile)) {
+			return preg_replace($pattern, $definition, $configFile, 1);
+		}
+
+		$closingTagPosition = strrpos($configFile, '?>');
+		if ($closingTagPosition === false) {
+			$separator = str_ends_with($configFile, "\n") ? '' : PHP_EOL;
+			return $configFile . $separator . $definition . PHP_EOL;
+		}
+
+		$beforeClosingTag = substr($configFile, 0, $closingTagPosition);
+		$separator = str_ends_with($beforeClosingTag, "\n") ? '' : PHP_EOL;
+		return $beforeClosingTag . $separator . $definition . PHP_EOL
+			. substr($configFile, $closingTagPosition);
+	}
+
 	private function switchDbCharsetAction(): void
 	{
 		if (false === $this->validateFormToken()) {
@@ -766,28 +800,6 @@ class Backup extends Controller
 
 		$this->current_charset = $selectedCharset;
 		Tools::log()->notice('record-updated-correctly');
-	}
-
-	private function setConfigConstant(string $configFile, string $name, string $value): string
-	{
-		$definition = "define('" . $name . "', '" . $value . "');";
-		$pattern = "/define\\s*\\(\\s*(['\"])" . preg_quote($name, '/')
-			. "\\1\\s*,\\s*(['\"])[^'\"]*\\2\\s*\\)\\s*;/";
-
-		if (preg_match($pattern, $configFile)) {
-			return preg_replace($pattern, $definition, $configFile, 1);
-		}
-
-		$closingTagPosition = strrpos($configFile, '?>');
-		if ($closingTagPosition === false) {
-			$separator = str_ends_with($configFile, "\n") ? '' : PHP_EOL;
-			return $configFile . $separator . $definition . PHP_EOL;
-		}
-
-		$beforeClosingTag = substr($configFile, 0, $closingTagPosition);
-		$separator = str_ends_with($beforeClosingTag, "\n") ? '' : PHP_EOL;
-		return $beforeClosingTag . $separator . $definition . PHP_EOL
-			. substr($configFile, $closingTagPosition);
 	}
 
 	private function unzipDatabase(string $gzFilePath): string
