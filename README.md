@@ -10,6 +10,11 @@ Permite crear y restaurar copias de seguridad de la base de datos (MySQL y Postg
 - Límite del número máximo de copias que se conservan, borrando automáticamente las más antiguas.
 - Aviso cuando han pasado más de 30 días desde la última copia de seguridad.
 
+## Requisitos
+- Extensión PHP `zip`.
+- La copia de archivos se genera con ZipStream. **En PHP de 32 bits** (donde ZipStream 3.x no funciona) o si ZipStream falla, se genera automáticamente con ZipArchive, así que el plugin funciona igualmente. El `composer.json` desactiva `platform-check` para que la comprobación de plataforma de Composer no rompa la instalación en esos entornos.
+- La copia de archivos no incluye `MyFiles/Backups`, `MyFiles/Cache`, `MyFiles/Tmp` ni `Dinamic`, y salta sin fallar las carpetas o archivos que PHP no puede leer (restricción `open_basedir`, carpetas sin permisos como `mysql/` o `@eaDir` de Synology, enlaces rotos). Si aun así la copia falla, se muestra el motivo en el registro.
+
 ## Carpeta
 La carpeta debe llamarse igual que el plugin: **Backup**.
 

@@ -88,9 +88,46 @@ final class BackupFileUnreadableFoldersTest extends TestCase
         }
     }
 
-    public function testExcludedFoldersAreNotZipped(): void
+    /**
+     * Motores de compresión con los que se prueba el recorrido de carpetas.
+     *
+     * @return array<string, array{class-string<BackupFile>}>
+     */
+    public static function engineProvider(): array
     {
-        $this->assertTrue($this->zipFolder(), 'zipFolder() debería devolver true');
+        return [
+            'ZipStream' => [BackupFile::class],
+            'ZipArchive' => [BackupFileUnreadableZipArchive::class],
+        ];
+    }
+
+    /**
+     * @dataProvider engineProvider
+     *
+     * @param class-string<BackupFile> $className Clase que genera el zip.
+     */
+    public function testBrokenSymlinkIsSkipped(string $className): void
+    {
+        // un enlace roto no es un archivo normal: antes rompía toda la copia
+        if (false === @symlink($this->root . '/no-existe.txt', $this->root . '/roto.txt')) {
+            $this->markTestSkipped('No se pueden crear enlaces simbólicos en este entorno.');
+        }
+
+        $this->assertTrue($this->zipFolder($className), 'zipFolder() debería devolver true con un enlace roto');
+
+        $names = $this->zipNames();
+        $this->assertContains('visible.txt', $names);
+        $this->assertNotContains('roto.txt', $names);
+    }
+
+    /**
+     * @dataProvider engineProvider
+     *
+     * @param class-string<BackupFile> $className Clase que genera el zip.
+     */
+    public function testExcludedFoldersAreNotZipped(string $className): void
+    {
+        $this->assertTrue($this->zipFolder($className), 'zipFolder() debería devolver true');
 
         $names = $this->zipNames();
         $this->assertContains('visible.txt', $names);
@@ -106,7 +143,12 @@ final class BackupFileUnreadableFoldersTest extends TestCase
         }
     }
 
-    public function testUnreadableFolderIsSkipped(): void
+    /**
+     * @dataProvider engineProvider
+     *
+     * @param class-string<BackupFile> $className Clase que genera el zip.
+     */
+    public function testUnreadableFolderIsSkipped(string $className): void
     {
         chmod($this->root . '/locked', 0000);
 
@@ -115,7 +157,7 @@ final class BackupFileUnreadableFoldersTest extends TestCase
             $this->markTestSkipped('No se pueden quitar los permisos de lectura en este entorno.');
         }
 
-        $this->assertTrue($this->zipFolder(), 'zipFolder() debería devolver true con una carpeta sin permisos');
+        $this->assertTrue($this->zipFolder($className), 'zipFolder() debería devolver true con una carpeta sin permisos');
 
         $names = $this->zipNames();
         $this->assertContains('visible.txt', $names);
@@ -123,12 +165,13 @@ final class BackupFileUnreadableFoldersTest extends TestCase
     }
 
     /**
-     * Ejecuta BackupFile::zipFolder() sobre la carpeta temporal.
+     * Ejecuta zipFolder() de la clase indicada sobre la carpeta temporal.
+     *
+     * @param class-string<BackupFile> $className Clase que genera el zip.
      */
-    private function zipFolder(): bool
+    private function zipFolder(string $className): bool
     {
-        $method = new ReflectionMethod(BackupFile::class, 'zipFolder');
-        $method->setAccessible(true);
+        $method = new ReflectionMethod($className, 'zipFolder');
         return $method->invoke(null, $this->zipPath, 'test', $this->root);
     }
 
@@ -147,5 +190,16 @@ final class BackupFileUnreadableFoldersTest extends TestCase
         }
         $zip->close();
         return $names;
+    }
+}
+
+/**
+ * BackupFile que simula un PHP de 32 bits: nunca usa ZipStream, solo ZipArchive.
+ */
+class BackupFileUnreadableZipArchive extends BackupFile
+{
+    protected static function canUseZipStream(): bool
+    {
+        return false;
     }
 }

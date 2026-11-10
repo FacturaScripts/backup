@@ -21,33 +21,37 @@ namespace FacturaScripts\Plugins\Backup\Lib;
 
 use FacturaScripts\Core\Tools;
 use FilesystemIterator;
+use Generator;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Throwable;
+use ZipArchive;
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
 /**
+ * Genera la copia de seguridad de los archivos en un zip dentro de MyFiles/Backups.
+ * Usa ZipStream y, en PHP de 32 bits o si ZipStream falla, ZipArchive.
+ * Salta las carpetas excluidas sin entrar en ellas y las carpetas o archivos que no se pueden leer
+ * (open_basedir, permisos), para que la copia no falle por ellos.
+ *
  * @author Daniel Fernández Giménez <contacto@danielfg.es>
  */
 class BackupFile
 {
     /**
-     * Carpetas (relativas a la raíz, con '/' final) que no se incluyen en la copia.
-     * El '/' final evita excluir otras carpetas con el mismo prefijo.
+     * Carpetas que no se incluyen en la copia (con '/' final para no excluir otras con el mismo prefijo).
      *
-     * @var string[]
+     * @var array<string>
      */
     protected const EXCLUDED_FOLDERS = ['MyFiles/Backups/', 'MyFiles/Cache/', 'MyFiles/Tmp/', 'Dinamic/'];
 
     /**
-     * Genera una copia de seguridad de los archivos en MyFiles/Backups.
+     * Crea la copia de seguridad de archivos en MyFiles/Backups.
      *
-     * @param string $channel Canal de log donde se registran los mensajes.
-     *
-     * @return bool
+     * @param string $channel Canal de log donde registrar los errores.
      */
     public static function generate(string $channel = ''): bool
     {
@@ -73,16 +77,155 @@ class BackupFile
     }
 
     /**
-     * Comprime la carpeta de FacturaScripts (o la indicada) en un zip, saltando las carpetas
-     * excluidas sin entrar en ellas y las carpetas o archivos que no se puedan leer.
+     * Indica si se puede usar ZipStream. ZipStream 3.x exige un PHP de 64 bits,
+     * así que en PHP de 32 bits se usa ZipArchive.
+     */
+    protected static function canUseZipStream(): bool
+    {
+        return PHP_INT_SIZE >= 8 && class_exists(ZipStream::class);
+    }
+
+    /**
+     * Recorre los archivos a incluir en la copia y devuelve, uno a uno, su ruta relativa dentro
+     * del zip (clave) y su ruta absoluta (valor). Es un generador para no cargar en memoria la
+     * lista completa de archivos de la instalación.
      *
-     * @param string $fileName Ruta del zip de destino.
-     * @param string $channel Canal de log donde se registran los errores.
+     * - SKIP_DOTS evita visitar '.' y '..': con open_basedir, comprobar '..' lanzaba un error.
+     * - Las carpetas excluidas se podan sin entrar en ellas.
+     * - Se saltan las carpetas y archivos sin permiso de lectura y lo que no sea un archivo
+     *   normal (sockets, enlaces rotos...).
+     * - CATCH_GET_CHILD salta las subcarpetas que, aun así, lancen una excepción al abrirlas.
+     *
      * @param string|null $sourceFolder Carpeta a comprimir. Por defecto, FS_FOLDER.
      *
-     * @return bool
+     * @return Generator<string, string>
+     */
+    protected static function getFilesToZip(?string $sourceFolder = null): Generator
+    {
+        $root = str_replace(DIRECTORY_SEPARATOR, '/', rtrim($sourceFolder ?? FS_FOLDER, '/\\'));
+
+        $filtered = new RecursiveCallbackFilterIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+            function (SplFileInfo $current) use ($root): bool {
+                if (false === is_readable($current->getPathname())) {
+                    return false;
+                }
+
+                if ($current->isDir()) {
+                    $relative = static::getRelativePath($root, $current->getPathname());
+                    return false === in_array($relative . '/', static::EXCLUDED_FOLDERS, true);
+                }
+
+                return $current->isFile();
+            }
+        );
+
+        $files = new RecursiveIteratorIterator(
+            $filtered,
+            RecursiveIteratorIterator::LEAVES_ONLY,
+            RecursiveIteratorIterator::CATCH_GET_CHILD
+        );
+
+        foreach ($files as $file) {
+            // los enlaces a carpetas no se recorren y llegan aquí como hojas
+            if ($file->isDir()) {
+                continue;
+            }
+
+            $filePath = $file->getPathname();
+            yield static::getRelativePath($root, $filePath) => $filePath;
+        }
+    }
+
+    /**
+     * Devuelve la ruta de un archivo relativa a la raíz de la copia, con '/' como separador.
+     *
+     * @param string $root Raíz de la copia, con '/' como separador y sin '/' final.
+     * @param string $path Ruta absoluta del archivo o carpeta.
+     */
+    protected static function getRelativePath(string $root, string $path): string
+    {
+        return substr(str_replace(DIRECTORY_SEPARATOR, '/', $path), strlen($root) + 1);
+    }
+
+    /**
+     * Comprime los archivos de FacturaScripts en el zip indicado: ZipStream si es posible
+     * y ZipArchive en PHP de 32 bits o si ZipStream falla.
+     *
+     * @param string $fileName Ruta completa del zip a crear.
+     * @param string $channel Canal de log donde registrar los errores.
+     * @param string|null $sourceFolder Carpeta a comprimir. Por defecto, FS_FOLDER.
      */
     protected static function zipFolder(string $fileName, string $channel = '', ?string $sourceFolder = null): bool
+    {
+        // en PHP de 32 bits no se puede usar ZipStream 3.x
+        if (false === static::canUseZipStream()) {
+            return static::zipFolderWithZipArchive($fileName, $channel, $sourceFolder);
+        }
+
+        if (static::zipFolderWithZipStream($fileName, $channel, $sourceFolder)) {
+            return true;
+        }
+
+        // si falla ZipStream, lo intentamos con ZipArchive
+        return static::zipFolderWithZipArchive($fileName, $channel, $sourceFolder);
+    }
+
+    /**
+     * Genera el zip con la extensión ZipArchive (requisito del plugin).
+     * Es la alternativa a ZipStream para PHP de 32 bits o cuando ZipStream falla.
+     * Si falla, registra el motivo como error.
+     *
+     * @param string $fileName Ruta completa del zip a crear.
+     * @param string $channel Canal de log donde registrar los errores.
+     * @param string|null $sourceFolder Carpeta a comprimir. Por defecto, FS_FOLDER.
+     */
+    protected static function zipFolderWithZipArchive(string $fileName, string $channel = '', ?string $sourceFolder = null): bool
+    {
+        // ZipArchive no puede abrir un archivo vacío ya creado, así que lo borramos antes
+        if (file_exists($fileName)) {
+            unlink($fileName);
+        }
+
+        $zip = new ZipArchive();
+        $result = $zip->open($fileName, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($result !== true) {
+            Tools::log($channel)->error('backup-files-error', ['%error%' => 'ZipArchive::open() ' . $result]);
+            return false;
+        }
+
+        try {
+            foreach (static::getFilesToZip($sourceFolder) as $relativePath => $filePath) {
+                if (false === $zip->addFile($filePath, $relativePath)) {
+                    Tools::log($channel)->error('backup-files-error', ['%error%' => $zip->getStatusString() . ': ' . $filePath]);
+                    $zip->close();
+                    return false;
+                }
+            }
+        } catch (Throwable $e) {
+            Tools::log($channel)->error('backup-files-error', ['%error%' => $e->getMessage()]);
+            $zip->close();
+            return false;
+        }
+
+        // close() escribe el archivo; si falla, la copia no es válida
+        if (false === $zip->close()) {
+            Tools::log($channel)->error('backup-files-error', ['%error%' => $zip->getStatusString()]);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Genera el zip con ZipStream (2.x o 3.x) escribiendo directamente al archivo, sin cargarlo en memoria.
+     * Si falla, registra el motivo como aviso, porque a continuación se reintenta con ZipArchive.
+     *
+     * @param string $fileName Ruta completa del zip a crear.
+     * @param string $channel Canal de log donde registrar los errores.
+     * @param string|null $sourceFolder Carpeta a comprimir. Por defecto, FS_FOLDER.
+     */
+    protected static function zipFolderWithZipStream(string $fileName, string $channel = '', ?string $sourceFolder = null): bool
     {
         // abrimos un stream de escritura hacia el archivo destino
         $outputStream = fopen($fileName, 'wb');
@@ -107,48 +250,13 @@ class BackupFile
                 );
             }
 
-            $root = str_replace(DIRECTORY_SEPARATOR, '/', rtrim($sourceFolder ?? FS_FOLDER, '/\\'));
-
-            // SKIP_DOTS evita visitar '.' y '..' (que con open_basedir provoca un error)
-            $directory = new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS);
-
-            // podamos las carpetas excluidas sin entrar en ellas, y saltamos lo que no se pueda leer
-            $filtered = new RecursiveCallbackFilterIterator(
-                $directory,
-                function (SplFileInfo $current) use ($root): bool {
-                    if (false === is_readable($current->getPathname())) {
-                        return false;
-                    }
-
-                    if ($current->isDir()) {
-                        $relative = substr(str_replace(DIRECTORY_SEPARATOR, '/', $current->getPathname()), strlen($root) + 1);
-                        return false === in_array($relative . '/', static::EXCLUDED_FOLDERS, true);
-                    }
-
-                    return true;
-                }
-            );
-
-            // CATCH_GET_CHILD salta las subcarpetas que lancen excepción al abrirlas
-            $files = new RecursiveIteratorIterator(
-                $filtered,
-                RecursiveIteratorIterator::LEAVES_ONLY,
-                RecursiveIteratorIterator::CATCH_GET_CHILD
-            );
-
-            foreach ($files as $file) {
-                if ($file->isDir()) {
-                    continue;
-                }
-
-                $filePath = $file->getPathname();
-                $relativePath = substr(str_replace(DIRECTORY_SEPARATOR, '/', $filePath), strlen($root) + 1);
+            foreach (static::getFilesToZip($sourceFolder) as $relativePath => $filePath) {
                 $zip->addFileFromPath($relativePath, $filePath);
             }
 
             $zip->finish();
         } catch (Throwable $e) {
-            Tools::log($channel)->error('backup-files-error', ['%error%' => $e->getMessage()]);
+            Tools::log($channel)->warning('backup-files-error', ['%error%' => $e->getMessage()]);
             fclose($outputStream);
             return false;
         }
