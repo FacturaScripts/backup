@@ -5,6 +5,7 @@
     "backup-charset-error": "De tekencodering van de back-up is %db-charset%, terwijl deze in config.php %config-charset% is. Klik op de knop voor het wijzigen van de tekencodering voordat u de back-up herstelt.",
     "backup-charset-mixed-warning": "Waarschuwing: De back-up bevat tabellen met meerdere tekencoderingen (%charsets%). Uw huidige configuratie is %config-charset%.",
     "backup-file-too-big": "Het back-upbestand is te groot om naar de server te uploaden. De maximale grootte is %size% MB",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Waarschuwing: de back-up neemt %size% MB in beslag, maar u beschikt slechts over %memory% MB RAM. Onvoldoende geheugen om de back-up uit te voeren. U kunt ook de map FacturaScripts comprimeren; dit komt overeen met een kopie van de bestanden.",
     "backup-port-warning": "De MySQL-poort moet 3306 zijn, maar je gebruikt %port%",
     "backup-use-fixer-plugin": "Het wordt aanbevolen de plugin Fixer te gebruiken om de coderingen van de tabellen te corrigeren voordat u back-ups maakt.",

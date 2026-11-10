@@ -5,6 +5,7 @@
     "backup-charset-error": "Der Zeichensatz der Sicherungskopie ist %db-charset%, während es in der config.php %config-charset% ist. Klicken Sie auf die Schaltfläche 'Zeichensatz ändern', bevor Sie wiederherstellen.",
     "backup-charset-mixed-warning": "Warnung: Das Backup enthält Tabellen mit mehreren Kodierungen (%charsets%). Ihre aktuelle Einstellung ist %config-charset%.",
     "backup-file-too-big": "Die Sicherungsdatei ist zu groß, um auf den Server hochgeladen zu werden. Die maximale Größe beträgt %size% MB.",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Warnung: Das Backup belegt %size% MB, aber Sie haben nur %memory% MB freien Speicherplatz. Nicht genügend Speicherplatz für das Backup vorhanden.",
     "backup-port-warning": "Der MySQL-Port sollte 3306 sein, aber Sie verwenden den %port%.",
     "backup-use-fixer-plugin": "Es wird empfohlen, das Fixer-Plugin zu verwenden, um die Tabellenkodierungen vor dem Erstellen von Sicherungen zu korrigieren.",

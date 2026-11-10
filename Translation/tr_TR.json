@@ -5,6 +5,7 @@
     "backup-charset-error": "Yedekleme kodlaması %db-charset%, config.php düşeyinde %config-charset%. Geri yüklemeden önce kodlama değiştir düğmesine basın.",
     "backup-charset-mixed-warning": "Uyarı: Yedekleme, birden fazla kodlama (%charsets%) içeren tablolar içermektedir. Mevcut yapılandırmanız %config-charset% şeklindedir.",
     "backup-file-too-big": "Yedek dosyası sunucuya yüklemek için çok büyük. Maksimum boyut %size% MB'dir",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Uyarı: yedekleme %size% MB yer kaplıyor, ancak yalnızca %memory% MB RAM'iniz mevcut. Yedekleme yapmak için yetersiz. Alternatif olarak, dosyaların yedeği ile eşdeğer olan FacturaScripts klasörünü sıkıştırabilirsiniz.",
     "backup-port-warning": "MySQL portu 3306 olmalıdır, ancak %port% kullanıyorsunuz",
     "backup-use-fixer-plugin": "Yedekleme yapmadan önce tablo kodlamalarını düzeltmek için Fixer eklentisini kullanmanız önerilir.",

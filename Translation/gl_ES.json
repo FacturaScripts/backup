@@ -5,6 +5,7 @@
     "backup-charset-error": "A codificación da copia de seguridade é %db-charset%, mentres que no config.php é %config-charset%. Preme o botón cambiar codificación antes de restaurar.",
     "backup-charset-mixed-warning": "Aviso: a copia de seguridade contén táboas con múltiples codificacións (%charsets%). A súa configuración actual é %config-charset%.",
     "backup-file-too-big": "O arquivo de copia de seguridade é demasiado grande para subilo ao servidor. O tamaño máximo é %size% MB",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Advertencia: a copia de seguridade ocupa %size% MB, pero só ten %memory% MB de memoria dispoñible. Insuficiente para realizar a copia de seguridade.",
     "backup-port-warning": "O porto de MySQL debe ser o 3306, pero estás usando o %port%",
     "backup-use-fixer-plugin": "Recoméndase usar o complemento Fixer para arranxar codificacións da táboa antes de facer unha copia de seguridade.",

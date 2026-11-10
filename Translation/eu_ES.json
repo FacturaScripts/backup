@@ -5,6 +5,7 @@
     "backup-charset-error": "Segurtasunaren enkodeketa %db-charset% da, baina config.phpk %config-charset% da. Berreskuratzeko aurretik kodeketa aldatu botoia sakatu.",
     "backup-charset-mixed-warning": "Abisua: Babeskopiak hainbat kodetaziotako taula ditu (%charsets%). Zure egungo konfigurazioa %config-charset% da.",
     "backup-file-too-big": "Segurtasun kopiaren fitxategia handiegia da zerbitzarian igotzeko. Muga-egoera %size% MB da",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Abisua: babes-kopia %size% MB hartzen du, baina %memory% MB soilik baditu memoria eskuragarri. Eremuan kopia ezinezkoa da.",
     "backup-port-warning": "MySQLren ataria 3306 izan behar da, baina %port% erabiltzen ari zara.",
     "backup-use-fixer-plugin": "Babeskopiak egin aurretik taulen kodifikazioak zuzentzeko Fixer plugin-a erabiltzea gomendatzen da.",

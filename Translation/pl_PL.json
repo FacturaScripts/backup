@@ -5,6 +5,7 @@
     "backup-charset-error": "Kodowanie kopii zapasowej to %db-charset%, podczas gdy w config.php jest %config-charset%. Naciśnij przycisk zmień kodowanie przed przywróceniem.",
     "backup-charset-mixed-warning": "Uwaga: kopia zapasowa zawiera tabele o wielu kodowaniach (%charsets%). Twoje aktualne ustawienie to %config-charset%.",
     "backup-file-too-big": "Plik kopii zapasowej jest zbyt duży, aby go przesłać na serwer. Maksymalny rozmiar to %size% MB",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Advertencia: la copia de seguridad ocupa %size% MB, pero solamente tienes %memory% MB de memoria disponible. Insuficiente para realizar la copia de seguridad. Como alternativa puedes comprimir la carpeta de FacturaScripts, que es equivalente a una copia de los archivos.",
     "backup-port-warning": "Port MySQL powinien być 3306, ale używasz portu %port%",
     "backup-use-fixer-plugin": "Zaleca się użycie wtyczki Fixer w celu poprawienia kodowań tabel przed wykonaniem kopii zapasowych.",

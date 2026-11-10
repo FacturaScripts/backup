@@ -5,6 +5,7 @@
     "backup-charset-error": "Chyba kódování zálohy je %db-charset%, zatímco v config.php je %config-charset%. Stiskněte tlačítko Změnit kódování před obnovením.",
     "backup-charset-mixed-warning": "Upozornění: Záloha obsahuje tabulky s více kódováními (%charsets%). Vaše aktuální nastavení je %config-charset%.",
     "backup-file-too-big": "Soubor zálohy je příliš velký pro nahrání na server. Maximální velikost je %size% MB",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Varování: Záloha zabírá %size% MB, ale máte k dispozici pouze %memory% MB paměti. Není dostatečná pro provedení zálohy.",
     "backup-port-warning": "Port MySQL by měl být 3306, ale používáte %port%",
     "backup-use-fixer-plugin": "Před zálohováním se doporučuje použít plugin Fixer k opravě kódování tabulek.",

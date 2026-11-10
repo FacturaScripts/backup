@@ -5,6 +5,7 @@
     "backup-charset-error": "L'encodage de la sauvegarde est %db-charset%, tandis que dans le fichier config.php c'est %config-charset%. Appuyez sur le bouton changer d'encodage avant de restaurer.",
     "backup-charset-mixed-warning": "Avertissement : la sauvegarde contient des tables avec plusieurs jeux de caractères (%charsets%). Votre configuration actuelle est %config-charset%.",
     "backup-file-too-big": "Le fichier de sauvegarde est trop volumineux pour être téléchargé sur le serveur. La taille maximale est de %size% MB",
+    "backup-files-error": "Error al comprimir los archivos de la copia de seguridad: %error%",
     "backup-memory-warning": "Avertissement : la sauvegarde occupe %size% Mo, mais vous disposez uniquement de %memory% Mo de mémoire disponible. Insuffisant pour effectuer la sauvegarde.",
     "backup-port-warning": "Le port MySQL devrait être 3306, mais vous utilisez %port%.",
     "backup-use-fixer-plugin": "Il est recommandé d'utiliser le plugin Fixer pour corriger les codages de table avant de sauvegarder.",
