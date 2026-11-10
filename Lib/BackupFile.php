@@ -20,6 +20,7 @@
 namespace FacturaScripts\Plugins\Backup\Lib;
 
 use FacturaScripts\Core\Tools;
+use Generator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Throwable;
@@ -35,6 +36,13 @@ use ZipStream\ZipStream;
  */
 class BackupFile
 {
+    /**
+     * Carpetas que no se incluyen en la copia (con '/' final para no excluir otras con el mismo prefijo).
+     *
+     * @var array<string>
+     */
+    protected const EXCLUDED_FOLDERS = ['MyFiles/Backups/', 'MyFiles/Cache/', 'MyFiles/Tmp/', 'Dinamic/'];
+
     /**
      * Crea la copia de seguridad de archivos en MyFiles/Backups.
      *
@@ -64,13 +72,6 @@ class BackupFile
     }
 
     /**
-     * Carpetas que no se incluyen en la copia (con '/' final para no excluir otras con el mismo prefijo).
-     *
-     * @var array<string>
-     */
-    protected const EXCLUDED_FOLDERS = ['MyFiles/Backups/', 'MyFiles/Cache/', 'MyFiles/Tmp/', 'Dinamic/'];
-
-    /**
      * Indica si se puede usar ZipStream. ZipStream 3.x exige un PHP de 64 bits,
      * así que en PHP de 32 bits se usa ZipArchive.
      */
@@ -80,18 +81,19 @@ class BackupFile
     }
 
     /**
-     * Devuelve las rutas (relativa dentro del zip => absoluta) de los archivos a incluir en la copia.
+     * Recorre los archivos a incluir en la copia y devuelve, uno a uno, su ruta relativa dentro
+     * del zip (clave) y su ruta absoluta (valor). Es un generador para no cargar en memoria la
+     * lista completa de archivos de la instalación.
      *
-     * @return array<string, string>
+     * @return Generator<string, string>
      */
-    protected static function getFilesToZip(): array
+    protected static function getFilesToZip(): Generator
     {
         $files = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator(FS_FOLDER),
             RecursiveIteratorIterator::LEAVES_ONLY
         );
 
-        $result = [];
         foreach ($files as $file) {
             if ($file->isDir()) {
                 continue;
@@ -106,15 +108,15 @@ class BackupFile
                 }
             }
 
-            $result[$relativePath] = $filePath;
+            yield $relativePath => $filePath;
         }
-
-        return $result;
     }
 
     /**
      * Genera el zip con la extensión ZipArchive (requisito del plugin).
-     * Es la alternativa a ZipStream para PHP de 32 bits.
+     * Es la alternativa a ZipStream para PHP de 32 bits o cuando ZipStream falla.
+     *
+     * @param string $fileName Ruta completa del zip a crear.
      */
     protected static function zipFolderWithZipArchive(string $fileName): bool
     {
@@ -167,6 +169,8 @@ class BackupFile
 
     /**
      * Genera el zip con ZipStream (2.x o 3.x) escribiendo directamente al archivo, sin cargarlo en memoria.
+     *
+     * @param string $fileName Ruta completa del zip a crear.
      */
     protected static function zipFolderWithZipStream(string $fileName): bool
     {

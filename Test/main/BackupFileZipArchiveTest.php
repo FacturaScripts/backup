@@ -78,11 +78,28 @@ final class BackupFileZipArchiveTest extends TestCase
 
     public function testGenerateWithZipArchive(): void
     {
+        // forzamos el camino de ZipArchive, como en PHP de 32 bits
+        $this->assertValidBackup(BackupFileForceZipArchive::class);
+    }
+
+    public function testGenerateFallsBackToZipArchiveWhenZipStreamFails(): void
+    {
+        // si ZipStream falla y deja un archivo a medias, se debe rehacer con ZipArchive
+        $this->assertValidBackup(BackupFileZipStreamFails::class);
+    }
+
+    /**
+     * Genera la copia con la clase indicada y comprueba que el zip es válido, que incluye
+     * el archivo marcador y que respeta las carpetas excluidas.
+     *
+     * @param class-string<BackupFile> $className Clase que genera la copia.
+     */
+    private function assertValidBackup(string $className): void
+    {
         $folder = Tools::folder('MyFiles', 'Backups');
         $before = is_dir($folder) ? (glob($folder . DIRECTORY_SEPARATOR . '*.zip') ?: []) : [];
 
-        // forzamos el camino de ZipArchive
-        $this->assertTrue(BackupFileForceZipArchive::generate('test'), 'generate() con ZipArchive ha fallado');
+        $this->assertTrue($className::generate('test'), 'generate() con ZipArchive ha fallado');
 
         $after = glob($folder . DIRECTORY_SEPARATOR . '*.zip') ?: [];
         $new = array_diff($after, $before);
@@ -118,6 +135,23 @@ class BackupFileForceZipArchive extends BackupFile
 {
     protected static function canUseZipStream(): bool
     {
+        return false;
+    }
+}
+
+/**
+ * BackupFile en el que ZipStream falla tras dejar un archivo a medias.
+ */
+class BackupFileZipStreamFails extends BackupFile
+{
+    protected static function canUseZipStream(): bool
+    {
+        return true;
+    }
+
+    protected static function zipFolderWithZipStream(string $fileName): bool
+    {
+        file_put_contents($fileName, 'zip-incompleto');
         return false;
     }
 }
