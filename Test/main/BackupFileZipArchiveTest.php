@@ -41,25 +41,6 @@ final class BackupFileZipArchiveTest extends TestCase
     /** @var string Ruta del zip generado durante el test. */
     private string $zipFile = '';
 
-    protected function setUp(): void
-    {
-        // carpeta marcador que debe aparecer en la copia
-        $this->markerDir = 'BackupZipArchiveTest_' . substr(md5(uniqid('', true)), 0, 8);
-        $markerPath = Tools::folder('MyFiles', $this->markerDir);
-        Tools::folderCheckOrCreate($markerPath);
-        file_put_contents($markerPath . DIRECTORY_SEPARATOR . 'marker.txt', 'zip-archive-marker');
-    }
-
-    protected function tearDown(): void
-    {
-        if ($this->zipFile && file_exists($this->zipFile)) {
-            unlink($this->zipFile);
-        }
-
-        Tools::folderDelete(Tools::folder('MyFiles', $this->markerDir));
-        $this->logErrors();
-    }
-
     public function testComposerDoesNotRequire64Bits(): void
     {
         // el plugin no debe tumbar la instalación en PHP de 32 bits
@@ -76,16 +57,16 @@ final class BackupFileZipArchiveTest extends TestCase
         );
     }
 
-    public function testGenerateWithZipArchive(): void
-    {
-        // forzamos el camino de ZipArchive, como en PHP de 32 bits
-        $this->assertValidBackup(BackupFileForceZipArchive::class);
-    }
-
     public function testGenerateFallsBackToZipArchiveWhenZipStreamFails(): void
     {
         // si ZipStream falla y deja un archivo a medias, se debe rehacer con ZipArchive
         $this->assertValidBackup(BackupFileZipStreamFails::class);
+    }
+
+    public function testGenerateWithZipArchive(): void
+    {
+        // forzamos el camino de ZipArchive, como en PHP de 32 bits
+        $this->assertValidBackup(BackupFileForceZipArchive::class);
     }
 
     /**
@@ -126,6 +107,25 @@ final class BackupFileZipArchiveTest extends TestCase
 
         $zip->close();
     }
+
+    protected function setUp(): void
+    {
+        // carpeta marcador que debe aparecer en la copia
+        $this->markerDir = 'BackupZipArchiveTest_' . substr(md5(uniqid('', true)), 0, 8);
+        $markerPath = Tools::folder('MyFiles', $this->markerDir);
+        Tools::folderCheckOrCreate($markerPath);
+        file_put_contents($markerPath . DIRECTORY_SEPARATOR . 'marker.txt', 'zip-archive-marker');
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->zipFile && file_exists($this->zipFile)) {
+            unlink($this->zipFile);
+        }
+
+        Tools::folderDelete(Tools::folder('MyFiles', $this->markerDir));
+        $this->logErrors();
+    }
 }
 
 /**
@@ -149,7 +149,7 @@ class BackupFileZipStreamFails extends BackupFile
         return true;
     }
 
-    protected static function zipFolderWithZipStream(string $fileName): bool
+    protected static function zipFolderWithZipStream(string $fileName, string $channel = '', ?string $sourceFolder = null): bool
     {
         file_put_contents($fileName, 'zip-incompleto');
         return false;
