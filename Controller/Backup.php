@@ -280,7 +280,7 @@ class Backup extends Controller
 		if ($db_file) {
 			$db_file_path = $this->getBackupFilePath($db_file, ['sql']);
 			if (empty($db_file_path) || false === file_exists($db_file_path)) {
-				Tools::log()->error('file-not-found');
+				Tools::log()->error('file-not-found', ['%fileName%' => $db_file]);
 				return;
 			}
 
@@ -290,7 +290,7 @@ class Backup extends Controller
 		if ($zip_file) {
 			$zip_file_path = $this->getBackupFilePath($zip_file, ['zip']);
 			if (empty($zip_file_path) || false === file_exists($zip_file_path)) {
-				Tools::log()->error('file-not-found');
+				Tools::log()->error('file-not-found', ['%fileName%' => $zip_file]);
 				return;
 			}
 
@@ -317,7 +317,7 @@ class Backup extends Controller
 
 		$file_path = $this->getBackupFilePath($file_name, ['sql']);
 		if (empty($file_path) || false === file_exists($file_path)) {
-			Tools::log()->error('file-not-found');
+			Tools::log()->error('file-not-found', ['%fileName%' => $file_name]);
 			return;
 		}
 
@@ -342,7 +342,7 @@ class Backup extends Controller
 
 		$file_path = $this->getBackupFilePath($file_name, ['zip']);
 		if (empty($file_path) || false === file_exists($file_path)) {
-			Tools::log()->error('file-not-found');
+			Tools::log()->error('file-not-found', ['%fileName%' => $file_name]);
 			return;
 		}
 
