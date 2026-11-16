@@ -697,16 +697,16 @@ class Backup extends Controller
 			return;
 		}
 
-		if ($this->restoreFilesFromZip($zipFile->getPathname())) {
+		if ($this->restoreFilesFromZip($zipFile->getPathname(), $zipFile->getClientOriginalName())) {
 			Tools::log()->notice('record-updated-correctly');
 		}
 	}
 
-	private function restoreFilesFromZip(string $zipPath): bool
+	private function restoreFilesFromZip(string $zipPath, string $zipName): bool
 	{
 		$zip = new ZipArchive();
 		if (true !== $zip->open($zipPath)) {
-			Tools::log()->error('zip error');
+			Tools::log()->error('backup-zip-open-error', ['%zipFile%' => $zipName]);
 			return false;
 		}
 
@@ -720,7 +720,7 @@ class Backup extends Controller
 
 			// eliminamos lo que se haya podido extraer antes del error
 			Tools::folderDelete($tmpFolder);
-			Tools::log()->error('zip extract error');
+			Tools::log()->error('backup-zip-extract-error', ['%zipFile%' => $zipName]);
 			return false;
 		}
 		$zip->close();

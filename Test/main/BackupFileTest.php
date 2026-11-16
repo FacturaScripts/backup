@@ -253,7 +253,7 @@ final class BackupFileTest extends TestCase
         $method = $reflection->getMethod('restoreFilesFromZip');
         $method->setAccessible(true);
 
-        $this->assertTrue($method->invoke($controller, $zipPath), 'No se pudieron restaurar los archivos del ZIP');
+        $this->assertTrue($method->invoke($controller, $zipPath, basename($zipPath)), 'No se pudieron restaurar los archivos del ZIP');
     }
 
     protected function tearDown(): void
