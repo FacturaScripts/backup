@@ -193,6 +193,6 @@ final class BackupControllerTest extends TestCase
         $method = $reflection->getMethod('restoreFilesFromZip');
         $method->setAccessible(true);
 
-        return $method->invoke($controller, $zipPath);
+        return $method->invoke($controller, $zipPath, basename($zipPath));
     }
 }

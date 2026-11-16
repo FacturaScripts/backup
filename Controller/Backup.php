@@ -280,7 +280,7 @@ class Backup extends Controller
 		if ($db_file) {
 			$db_file_path = $this->getBackupFilePath($db_file, ['sql']);
 			if (empty($db_file_path) || false === file_exists($db_file_path)) {
-				Tools::log()->error('file-not-found');
+				Tools::log()->error('file-not-found', ['%fileName%' => $db_file]);
 				return;
 			}
 
@@ -290,7 +290,7 @@ class Backup extends Controller
 		if ($zip_file) {
 			$zip_file_path = $this->getBackupFilePath($zip_file, ['zip']);
 			if (empty($zip_file_path) || false === file_exists($zip_file_path)) {
-				Tools::log()->error('file-not-found');
+				Tools::log()->error('file-not-found', ['%fileName%' => $zip_file]);
 				return;
 			}
 
@@ -317,7 +317,7 @@ class Backup extends Controller
 
 		$file_path = $this->getBackupFilePath($file_name, ['sql']);
 		if (empty($file_path) || false === file_exists($file_path)) {
-			Tools::log()->error('file-not-found');
+			Tools::log()->error('file-not-found', ['%fileName%' => $file_name]);
 			return;
 		}
 
@@ -342,7 +342,7 @@ class Backup extends Controller
 
 		$file_path = $this->getBackupFilePath($file_name, ['zip']);
 		if (empty($file_path) || false === file_exists($file_path)) {
-			Tools::log()->error('file-not-found');
+			Tools::log()->error('file-not-found', ['%fileName%' => $file_name]);
 			return;
 		}
 
@@ -399,7 +399,7 @@ class Backup extends Controller
 		// buscamos todos los archivos de la carpeta MyFiles/Backups
 		$folder = Tools::folder('MyFiles', 'Backups');
 		if (false === Tools::folderCheckOrCreate($folder)) {
-			Tools::log()->error('folder-create-error');
+			Tools::log()->error('backup-folder-create-error');
 			return;
 		}
 
@@ -697,16 +697,16 @@ class Backup extends Controller
 			return;
 		}
 
-		if ($this->restoreFilesFromZip($zipFile->getPathname())) {
+		if ($this->restoreFilesFromZip($zipFile->getPathname(), $zipFile->getClientOriginalName())) {
 			Tools::log()->notice('record-updated-correctly');
 		}
 	}
 
-	private function restoreFilesFromZip(string $zipPath): bool
+	private function restoreFilesFromZip(string $zipPath, string $zipName): bool
 	{
 		$zip = new ZipArchive();
 		if (true !== $zip->open($zipPath)) {
-			Tools::log()->error('zip error');
+			Tools::log()->error('backup-zip-open-error', ['%zipFile%' => $zipName]);
 			return false;
 		}
 
@@ -720,7 +720,7 @@ class Backup extends Controller
 
 			// eliminamos lo que se haya podido extraer antes del error
 			Tools::folderDelete($tmpFolder);
-			Tools::log()->error('zip extract error');
+			Tools::log()->error('backup-zip-extract-error', ['%zipFile%' => $zipName]);
 			return false;
 		}
 		$zip->close();

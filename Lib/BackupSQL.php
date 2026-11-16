@@ -93,7 +93,7 @@ class BackupSQL
     {
         $folder = Tools::folder('MyFiles', 'Backups');
         if (false === Tools::folderCheckOrCreate($folder)) {
-            Tools::log($channel)->error('folder-create-error');
+            Tools::log($channel)->error('backup-folder-create-error');
             return false;
         }
 
