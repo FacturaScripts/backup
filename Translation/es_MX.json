@@ -20,7 +20,7 @@
     "backup-zip-extract-error": "No se ha podido extraer el archivo zip '%zipFile%'. Comprueba que hay espacio en disco y permisos de escritura en MyFiles.",
     "backup-zip-open-error": "No se ha podido abrir el archivo zip '%zipFile%'. Comprueba que es una copia de archivos válida.",
     "config-file-error": "No se ha podido leer el archivo config.php.",
-    "config-mysql-charset-error": "Faltan las constantes de codificación en el archivo config.php ('%config-charset%', '%config-collate%')",
+    "config-mysql-charset-error": "La codificación '%selected-charset%' no es válida. La configuración actual es '%config-charset%', '%config-collate%'.",
     "download-backup": "Descargar copia de seguridad",
     "download-backup-p": "Descarga una copia de seguridad de tu base de datos y otra de tus archivos. Guarda estos ficheros en un lugar seguro. Si en algún momento quieres restaurar los datos de FacturaScripts, necesitarás estos ficheros.",
     "file-ready-to-download": "Archivo listo para descargar",
