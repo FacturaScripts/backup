@@ -125,12 +125,12 @@ class Cron extends CronClass
     protected function createBackup(): void
     {
         if (false === BackupSQL::generate(self::JOB_NAME)) {
-            Tools::log(self::JOB_NAME)->error('sql-file-error');
+            Tools::log(self::JOB_NAME)->error('backup-sql-error');
             return;
         }
 
         if (false === BackupFile::generate(self::JOB_NAME)) {
-            Tools::log(self::JOB_NAME)->error('zip-file-error');
+            Tools::log(self::JOB_NAME)->error('backup-zip-error');
             return;
         }
 

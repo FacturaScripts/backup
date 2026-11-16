@@ -399,7 +399,7 @@ class Backup extends Controller
 		// buscamos todos los archivos de la carpeta MyFiles/Backups
 		$folder = Tools::folder('MyFiles', 'Backups');
 		if (false === Tools::folderCheckOrCreate($folder)) {
-			Tools::log()->error('folder-create-error');
+			Tools::log()->error('backup-folder-create-error');
 			return;
 		}
 
